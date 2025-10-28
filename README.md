@@ -2,6 +2,10 @@
 <h4 align="center">基于JMeter的企业级分布式性能测试平台</h4>
 
 <p align="center">
+  <strong>🔄 Forked from: <a href="https://github.com/guojiaxing1995/easy-jmeter">guojiaxing1995/easy-jmeter</a></strong>
+</p>
+
+<p align="center">
   <a href="https://www.oracle.com/cn/java/technologies/downloads/"><img src="https://img.shields.io/badge/Java-8%2B-orange?style=flat-square&logo=openjdk" alt="Java version"></a>
   <a href="https://nodejs.org/en/"><img src="https://img.shields.io/badge/Node.js-12.13.0+-green?style=flat-square&logo=node.js" alt="Node.js version"></a>
   <a href="https://vuejs.org/"><img src="https://img.shields.io/badge/Vue.js-2.x-4FC08D?style=flat-square&logo=vue.js" alt="Vue version"></a>
@@ -50,7 +54,8 @@
 
 - 📖 **使用文档**：[CSDN博客](https://blog.csdn.net/qq_36450484/article/details/136213502)
 - 🎨 **原型设计**：[墨刀原型](https://modao.cc/app/Qf56LAncrokbxs3iOBMRap#screen=slcycrmormft43z)
-- 💾 **源码地址**：[GitHub](https://github.com/guojiaxing1995/easy-jmeter)
+- 🔄 **原始项目**：[guojiaxing1995/easy-jmeter](https://github.com/guojiaxing1995/easy-jmeter)
+- 💾 **当前仓库**：[yzcpleo/easy-jmeter](https://github.com/yzcpleo/easy-jmeter)
 
 ## 🚀 快速开始
 
