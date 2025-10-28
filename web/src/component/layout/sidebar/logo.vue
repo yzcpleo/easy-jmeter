@@ -1,6 +1,6 @@
 <template>
   <div :class="!elMenuCollapse ? 'logo' : 'mobile-logo'">
-    <span class="logo-text">{{ !elMenuCollapse ? '国际业务性能测试平台' : '测试平台' }}</span>
+    <span class="logo-text">{{ !elMenuCollapse ? 'Easy JMeter 性能测试平台' : 'JMeter平台' }}</span>
   </div>
 </template>
 
