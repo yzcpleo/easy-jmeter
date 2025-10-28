@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.CaseMapper">
+
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.CaseDO">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="creator" jdbcType="INTEGER" property="creator"/>
+        <result column="status" property="status" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <result column="project" jdbcType="INTEGER" property="project"/>
+        <result column="jmx" jdbcType="VARCHAR" property="jmx"/>
+        <result column="csv" jdbcType="VARCHAR" property="csv"/>
+        <result column="jar" jdbcType="VARCHAR" property="jar"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+    </resultMap>
+
+    <resultMap id="SearchResultMap" type="io.github.guojiaxing1995.easyJmeter.vo.CaseInfoVO">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="status" property="status" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <result column="project" jdbcType="INTEGER" property="project"/>
+        <result column="jmx" jdbcType="VARCHAR" property="jmx"/>
+        <result column="csv" jdbcType="VARCHAR" property="csv"/>
+        <result column="jar" jdbcType="VARCHAR" property="jar"/>
+        <result column="project_name" jdbcType="VARCHAR" property="projectName"/>
+        <result column="nickname" jdbcType="VARCHAR" property="creator"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+        <result column="task_id" jdbcType="VARCHAR" property="taskId"/>
+        <result column="task_result" property="taskResult" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+    </resultMap>
+
+    <select id="select" resultMap="SearchResultMap">
+        SELECT c.*, p.name as project_name, lu.nickname, t2.result AS task_result, t2.task_id AS task_id
+        FROM `case` c
+                 LEFT JOIN project p ON c.project = p.id
+                 LEFT JOIN lin_user lu ON lu.id = c.creator
+                 LEFT JOIN (
+            SELECT jmeter_case, MAX(create_time) AS max_create_time
+            FROM task
+            WHERE delete_time IS NULL
+            GROUP BY jmeter_case
+        ) t1 ON t1.jmeter_case = c.id
+                 LEFT JOIN task t2 ON t1.jmeter_case = t2.jmeter_case AND t1.max_create_time = t2.create_time
+        WHERE c.delete_time IS NULL
+        <if test="id !=null and id !=''">
+            AND c.id = #{id}
+        </if>
+        order by c.status DESC
+    </select>
+
+    <select id="selectByProject" resultMap="BaseResultMap">
+        SELECT c.*
+        FROM `case` c
+        WHERE c.delete_time IS NULL
+        AND c.project = #{project}
+    </select>
+</mapper>

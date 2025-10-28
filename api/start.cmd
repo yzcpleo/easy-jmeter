@@ -1,0 +1,2 @@
+java "-Dfile.encoding=UTF-8" "-Dspring.profiles.active=dev" -jar target/easyJmeter-0.1.0-RELEASE.jar "--spring.config.location=application-dev.yml"
+pause

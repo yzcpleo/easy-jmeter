@@ -1,0 +1,288 @@
+version: "3.8"
+
+services:
+  # =================== 应用服务 ===================
+  easy-jmeter-server:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.server
+    image: easy-jmeter/server:${VERSION:-latest}
+    container_name: easy-jmeter-server
+    restart: unless-stopped
+    ports:
+      - "${SERVER_HTTP_PORT:-5000}:5000"
+      - "${SERVER_SOCKET_PORT:-9000}:9000"
+    networks:
+      - easy-jmeter-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Shanghai
+      # 数据库配置
+      - DB_HOST=easy-jmeter-mysql
+      - DB_PORT=3306
+      - DB_NAME=easy-jmeter
+      - DB_USER=root
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      # MongoDB配置
+      - MONGO_HOST=easy-jmeter-mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=easyJmeter
+      - MONGO_USER=root
+      - MONGO_PASSWORD=${MONGO_PASSWORD:-mongo2020}
+      # InfluxDB配置
+      - INFLUX_HOST=easy-jmeter-influxdb
+      - INFLUX_PORT=8086
+      - INFLUX_DB=easyJmeter
+      - INFLUX_USER=root
+      - INFLUX_PASSWORD=${INFLUX_PASSWORD:-root}
+      # MinIO配置
+      - MINIO_HOST=easy-jmeter-minio
+      - MINIO_PORT=9000
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-root}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minio2023}
+      - MINIO_BUCKET=dev
+    volumes:
+      - server-logs:/opt/easy-jmeter/logs
+      - server-assets:/opt/easy-jmeter/assets
+      - server-temp:/opt/easy-jmeter/temp
+    depends_on:
+      - easy-jmeter-mysql
+      - easy-jmeter-mongodb
+      - easy-jmeter-influxdb
+      - easy-jmeter-minio
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  easy-jmeter-agent-1:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.agent
+    image: easy-jmeter/agent:${VERSION:-latest}
+    container_name: easy-jmeter-agent-1
+    restart: unless-stopped
+    networks:
+      easy-jmeter-net:
+        ipv4_address: 172.20.0.10
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Shanghai
+      # Server连接配置
+      - SERVER_HOST=easy-jmeter-server
+      - SERVER_PORT=9000
+      - SOCKET_CLIENT_SERVER_URL=http://easy-jmeter-server:9000
+      # JMeter配置
+      - JMETER_HOME=/opt/apache-jmeter
+      # InfluxDB配置（Agent可选）
+      - INFLUX_HOST=easy-jmeter-influxdb
+      - INFLUX_PORT=8086
+      - INFLUX_DB=easyJmeter
+      - INFLUX_USER=root
+      - INFLUX_PASSWORD=${INFLUX_PASSWORD:-root}
+    volumes:
+      - agent1-logs:/opt/easy-jmeter/logs
+      - agent1-results:/opt/easy-jmeter/jmeter-results
+      - agent1-temp:/opt/easy-jmeter/temp
+      - jmeter-install:/opt/apache-jmeter:ro  # 只读挂载JMeter
+    depends_on:
+      - easy-jmeter-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  easy-jmeter-agent-2:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.agent
+    image: easy-jmeter/agent:${VERSION:-latest}
+    container_name: easy-jmeter-agent-2
+    restart: unless-stopped
+    networks:
+      easy-jmeter-net:
+        ipv4_address: 172.20.0.11
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Shanghai
+      - SERVER_HOST=easy-jmeter-server
+      - SERVER_PORT=9000
+      - SOCKET_CLIENT_SERVER_URL=http://easy-jmeter-server:9000
+      - JMETER_HOME=/opt/apache-jmeter
+      - INFLUX_HOST=easy-jmeter-influxdb
+      - INFLUX_PORT=8086
+      - INFLUX_DB=easyJmeter
+      - INFLUX_USER=root
+      - INFLUX_PASSWORD=${INFLUX_PASSWORD:-root}
+    volumes:
+      - agent2-logs:/opt/easy-jmeter/logs
+      - agent2-results:/opt/easy-jmeter/jmeter-results
+      - agent2-temp:/opt/easy-jmeter/temp
+      - jmeter-install:/opt/apache-jmeter:ro
+    depends_on:
+      - easy-jmeter-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # =================== 基础服务 ===================
+  easy-jmeter-mysql:
+    image: mysql:5.7
+    container_name: easy-jmeter-mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    networks:
+      - easy-jmeter-net
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - MYSQL_DATABASE=easy-jmeter
+      - MYSQL_USER=jmeter
+      - MYSQL_PASSWORD=${MYSQL_USER_PASSWORD:-jmeter123}
+      - TZ=Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-sql:/docker-entrypoint-initdb.d:ro
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=512M
+      --max-connections=500
+      --innodb-log-file-size=256M
+      --innodb-flush-log-at-trx-commit=1
+      --sync-binlog=1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  easy-jmeter-mongodb:
+    image: mongo:4.2
+    container_name: easy-jmeter-mongodb
+    restart: unless-stopped
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    networks:
+      - easy-jmeter-net
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-mongo2020}
+      - TZ=Asia/Shanghai
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-config:/data/configdb
+    command: --auth
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  easy-jmeter-influxdb:
+    image: influxdb:1.8
+    container_name: easy-jmeter-influxdb
+    restart: unless-stopped
+    ports:
+      - "${INFLUX_PORT:-8086}:8086"
+    networks:
+      - easy-jmeter-net
+    environment:
+      - INFLUXDB_DB=easyJmeter
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin
+      - INFLUXDB_USER=root
+      - INFLUXDB_USER_PASSWORD=${INFLUX_PASSWORD:-root}
+      - TZ=Asia/Shanghai
+      - INFLUXDB_HTTP_AUTH_ENABLED=true
+    volumes:
+      - influxdb-data:/var/lib/influxdb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  easy-jmeter-minio:
+    image: bitnami/minio:2023
+    container_name: easy-jmeter-minio
+    restart: unless-stopped
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    networks:
+      - easy-jmeter-net
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-root}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minio2023}
+      - MINIO_DEFAULT_BUCKETS=dev:public
+      - MINIO_FORCE_NEW_KEYS=yes
+    volumes:
+      - minio-data:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+  # =================== 前端服务 (可选) ===================
+  easy-jmeter-web:
+    image: nginx:alpine
+    container_name: easy-jmeter-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    networks:
+      - easy-jmeter-net
+    volumes:
+      - ../web/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - web-logs:/var/log/nginx
+    depends_on:
+      - easy-jmeter-server
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  easy-jmeter-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+
+volumes:
+  # 应用数据
+  server-logs:
+  server-assets:
+  server-temp:
+  agent1-logs:
+  agent1-results:
+  agent1-temp:
+  agent2-logs:
+  agent2-results:
+  agent2-temp:
+  web-logs:
+  
+  # JMeter安装
+  jmeter-install:
+    external: true  # 外部JMeter安装卷
+  
+  # 数据库数据
+  mysql-data:
+  mongodb-data:
+  mongodb-config:
+  influxdb-data:
+  minio-data:

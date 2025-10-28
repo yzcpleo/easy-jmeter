@@ -1,0 +1,234 @@
+# Easy JMeter GitLab CI/CD Pipeline
+# Docker流水线部署示例
+
+stages:
+  - build
+  - package
+  - deploy
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  DOCKER_REGISTRY: "$CI_REGISTRY"
+  PROJECT_NAME: "easy-jmeter"
+  MAVEN_IMAGE: "maven:3.8.4-openjdk-8"
+  DOCKER_IMAGE: "docker:20.10.16"
+
+# 缓存Maven依赖
+cache:
+  paths:
+    - .m2/repository/
+
+# Maven构建JAR包
+build:jar:
+  stage: build
+  image: $MAVEN_IMAGE
+  script:
+    - echo "🔨 Building Easy JMeter JAR package..."
+    - cd api
+    - mvn clean package -DskipTests -Dcheckstyle.skip
+    - echo "✅ JAR build completed"
+    - ls -la target/
+  artifacts:
+    paths:
+      - api/target/*.jar
+    expire_in: 2 hours
+    reports:
+      junit:
+        - api/target/surefire-reports/TEST-*.xml
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Docker镜像构建
+build:docker:
+  stage: package
+  image: $DOCKER_IMAGE
+  services:
+    - docker:20.10.16-dind
+  before_script:
+    - echo "🐳 Setting up Docker environment..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - echo "🏗️ Building Docker images..."
+    - export VERSION=${CI_COMMIT_SHORT_SHA}
+    
+    # 构建Server镜像
+    - docker build -f docker/Dockerfile.server 
+        -t $CI_REGISTRY_IMAGE/server:$VERSION 
+        -t $CI_REGISTRY_IMAGE/server:latest 
+        --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" 
+        --build-arg VERSION=$VERSION .
+    
+    # 构建Agent镜像  
+    - docker build -f docker/Dockerfile.agent 
+        -t $CI_REGISTRY_IMAGE/agent:$VERSION 
+        -t $CI_REGISTRY_IMAGE/agent:latest 
+        --build-arg BUILD_DATE="$(date -u +'%Y-%m-%dT%H:%M:%SZ')" 
+        --build-arg VERSION=$VERSION .
+    
+    # 推送镜像
+    - echo "📤 Pushing images to registry..."
+    - docker push $CI_REGISTRY_IMAGE/server:$VERSION
+    - docker push $CI_REGISTRY_IMAGE/agent:$VERSION
+    
+    # 推送latest标签（仅主分支）
+    - |
+      if [ "$CI_COMMIT_REF_NAME" = "main" ]; then
+        docker push $CI_REGISTRY_IMAGE/server:latest
+        docker push $CI_REGISTRY_IMAGE/agent:latest
+      fi
+    
+    - echo "✅ Docker images built and pushed successfully"
+    
+    # 显示镜像信息
+    - docker images | grep $CI_REGISTRY_IMAGE
+  dependencies:
+    - build:jar
+  only:
+    - main
+    - develop
+
+# 开发环境部署
+deploy:dev:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEV_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "🚀 Deploying to development environment..."
+    - export VERSION=${CI_COMMIT_SHORT_SHA}
+    
+    # 复制部署文件
+    - scp -r docker/ deploy/ $DEV_USER@$DEV_HOST:~/easy-jmeter/
+    
+    # 执行远程部署
+    - ssh $DEV_USER@$DEV_HOST "
+        cd ~/easy-jmeter && 
+        export VERSION=$VERSION &&
+        export REGISTRY=$CI_REGISTRY &&
+        echo 'Pulling latest images...' &&
+        docker pull $CI_REGISTRY_IMAGE/server:$VERSION &&
+        docker pull $CI_REGISTRY_IMAGE/agent:$VERSION &&
+        echo 'Deploying services...' &&
+        ./deploy/deploy.sh $VERSION &&
+        echo '✅ Development deployment completed'
+      "
+    
+    # 健康检查
+    - sleep 30
+    - curl -f http://$DEV_HOST:5000/actuator/health || exit 1
+    - echo "✅ Development environment is healthy"
+  environment:
+    name: development
+    url: http://$DEV_HOST
+  dependencies:
+    - build:docker
+  only:
+    - develop
+  when: manual
+
+# 生产环境部署
+deploy:prod:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client curl
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "🎯 Deploying to production environment..."
+    - export VERSION=${CI_COMMIT_SHORT_SHA}
+    
+    # 复制部署文件
+    - scp -r docker/ deploy/ $PROD_USER@$PROD_HOST:~/easy-jmeter/
+    
+    # 生产环境部署
+    - ssh $PROD_USER@$PROD_HOST "
+        cd ~/easy-jmeter && 
+        export VERSION=$VERSION &&
+        export REGISTRY=$CI_REGISTRY &&
+        echo 'Creating backup...' &&
+        docker-compose -f docker/docker-compose.prod.yml ps > deployment-backup.log &&
+        echo 'Pulling production images...' &&
+        docker pull $CI_REGISTRY_IMAGE/server:$VERSION &&
+        docker pull $CI_REGISTRY_IMAGE/agent:$VERSION &&
+        echo 'Deploying to production...' &&
+        ./deploy/deploy.sh $VERSION .env.prod &&
+        echo '✅ Production deployment completed'
+      "
+    
+    # 生产环境验证
+    - sleep 60
+    - curl -f http://$PROD_HOST:5000/actuator/health || exit 1
+    - echo "✅ Production environment is healthy"
+    
+    # 发送通知
+    - |
+      curl -X POST "$SLACK_WEBHOOK_URL" \
+        -H 'Content-type: application/json' \
+        --data "{\"text\":\"🚀 Easy JMeter v$VERSION deployed to production successfully!\"}"
+  environment:
+    name: production
+    url: http://$PROD_HOST
+  dependencies:
+    - build:docker
+  only:
+    - main
+  when: manual
+
+# 集成测试
+test:integration:
+  stage: test
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - echo "🧪 Running integration tests..."
+    
+    # API健康检查
+    - |
+      for i in {1..10}; do
+        if curl -s http://$DEV_HOST:5000/actuator/health | jq -r '.status' | grep -q UP; then
+          echo "✅ Server API is healthy"
+          break
+        fi
+        echo "Waiting for server... ($i/10)"
+        sleep 10
+      done
+    
+    # Socket.IO连通性测试
+    - curl -s http://$DEV_HOST:9000/socket.io/ | grep -q "Socket.IO" && echo "✅ Socket.IO is accessible"
+    
+    # MinIO连通性测试
+    - curl -s http://$DEV_HOST:9000/minio/health/live | grep -q "OK" && echo "✅ MinIO is healthy"
+    
+    - echo "✅ Integration tests passed"
+  dependencies:
+    - deploy:dev
+  only:
+    - develop
+  allow_failure: true
+
+# 清理资源
+cleanup:
+  stage: .post
+  image: $DOCKER_IMAGE
+  services:
+    - docker:20.10.16-dind
+  script:
+    - echo "🧹 Cleaning up Docker resources..."
+    - docker system prune -f --volumes
+    - docker builder prune -f
+    - echo "✅ Cleanup completed"
+  when: always
+  only:
+    - main
+    - develop

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.MachineMapper">
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.MachineDO">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="address" jdbcType="VARCHAR" property="address"/>
+        <result column="path" jdbcType="VARCHAR" property="path"/>
+        <result column="version" jdbcType="VARCHAR" property="version"/>
+        <result column="is_online" jdbcType="BOOLEAN" property="isOnline"/>
+        <result column="jmeter_status" property="jmeterStatus" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <result column="client_id" jdbcType="VARCHAR" property="clientId"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+    </resultMap>
+
+    <select id="selectByName" resultMap="BaseResultMap">
+        SELECT m.*
+        FROM machine m
+        WHERE m.name LIKE CONCAT('%',#{name},'%')
+          AND
+            m.delete_time IS NULL
+        ORDER BY m.is_online DESC, m.create_time DESC
+    </select>
+
+    <select id="selectByAddress" resultMap="BaseResultMap">
+        SELECT m.*
+        FROM machine m
+        WHERE m.address = #{address}
+          AND
+            m.delete_time IS NULL
+    </select>
+
+    <select id="selectByClientId" resultMap="BaseResultMap">
+        SELECT m.*
+        FROM machine m
+        WHERE m.client_id = #{clientId}
+          AND
+            m.delete_time IS NULL
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT m.*
+        FROM machine m
+        WHERE m.delete_time IS NULL
+    </select>
+    
+    <select id="executable" resultMap="BaseResultMap">
+        SELECT m.*
+        FROM machine m
+        WHERE m.is_online = true
+          AND
+            m.jmeter_status = '${@io.github.guojiaxing1995.easyJmeter.common.enumeration.JmeterStatusEnum@IDLE.value}'
+          AND
+            m.delete_time IS NULL
+    </select>
+</mapper>
+

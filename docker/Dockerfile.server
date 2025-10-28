@@ -1,0 +1,47 @@
+FROM openjdk:8-jre-alpine
+
+LABEL maintainer="Easy JMeter Team"
+LABEL version="2.0.0"
+LABEL description="Easy JMeter Server - Performance Testing Platform"
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN apk add --no-cache tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+
+# 创建应用目录
+WORKDIR /opt/easy-jmeter
+
+# 复制JAR包和启动脚本
+COPY api/target/*.jar ./easyJmeter.jar
+COPY docker/docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# 创建日志和数据目录
+RUN mkdir -p logs assets temp && \
+    addgroup -g 1000 jmeter && \
+    adduser -D -s /bin/sh -u 1000 -G jmeter jmeter && \
+    chown -R jmeter:jmeter /opt/easy-jmeter
+
+# 安装必要工具
+RUN apk add --no-cache curl procps netcat-openbsd
+
+# JVM参数优化
+ENV JAVA_OPTS="-server -Xms1g -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.awt.headless=true"
+
+# 应用参数
+ENV APP_OPTS="-Dfile.encoding=UTF-8 -Dspring.profiles.active=prod -Dsocket.server.enable=true -Dsocket.client.enable=false"
+
+# 暴露端口
+EXPOSE 5000 9000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5000/actuator/health || exit 1
+
+# 使用非root用户
+USER jmeter
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["server"]

@@ -1,0 +1,70 @@
+# Java 编译相关
+api/target/
+*.class
+*.jar
+!api/target/*.jar
+
+# Python 相关（如果有的话）
+Pipfile.lock
+__pycache__
+*/__pycache__/
+*.pytest_cache/
+*.db
+*.pyc
+*.cpython-36.pyc
+secure.py
+
+
+.DS_Store
+# 前端编译相关
+web/node_modules
+web/dist
+web/build
+miniprogram_npm
+/script/.cache
+
+# 日志文件
+logs/
+*.log
+*.log*
+
+# Maven相关
+.mvn/
+!mvnw
+!mvnw.cmd
+
+# local env files
+.env.local
+.env.*.local
+
+# 前端日志文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
+
+# cert
+*.pem
+www.*
+
+# 上传下载目录
+upload/
+download/
+
+# JMeter相关（如果不需要提交安装文件的话）
+apache-jmeter/
+
+# 临时文件和备份
+20*
+*.tmp
+*.temp
+*.bak
+*~

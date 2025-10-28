@@ -1,0 +1,23 @@
+FROM openjdk:8-jre
+
+MAINTAINER guojiaxing<302802003@qq.com>
+
+EXPOSE 5000
+
+# 复制已构建的jar文件
+COPY ./target/easyJmeter-0.1.0-RELEASE.jar /opt/easyJmeter.jar
+
+# 复制启动脚本
+COPY ./src/main/resources/docker-entrypoint.sh /opt/docker-entrypoint.sh
+
+WORKDIR /opt/
+
+ENV JMETER_HOME=/opt/apache-jmeter
+
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo 'Asia/Shanghai' > /etc/timezone
+
+RUN apt-get update && apt-get install -y procps
+
+ENTRYPOINT ["sh", "./docker-entrypoint.sh"]
+
+CMD ["server", "prod"]

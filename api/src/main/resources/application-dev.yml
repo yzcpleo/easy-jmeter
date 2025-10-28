@@ -1,0 +1,73 @@
+#开发环境配置
+
+server:
+  # 服务端口
+  port: 5000
+
+
+spring:
+  # 数据源配置，请修改为你项目的实际配置
+  datasource:
+    username: "root"
+    password: "root"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/easy-jmeter?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF8
+  data:
+    mongodb:
+      database: easyJmeter
+      host: localhost
+      port: 27017
+      username: root
+      password: mongo2020
+      authentication-database: admin
+  influx:
+    url: http://localhost:8086
+    user: root
+    password: root
+    database: easyJmeter
+
+# 开启权限拦截
+auth:
+  enabled: true
+
+# 开启登录要求验证码
+login-captcha:
+  enabled: false
+  secret: "m49CPM5ak@MDXTzbbT_ZEyMM3KBsBn!h"
+
+# 开启http请求日志记录
+request-log:
+  enabled: true
+
+
+logging:
+  level:
+    # web信息日志记录
+    web: debug
+    # SQL日志记录
+    io.github.guojiaxing1995.easyJmeter.mapper: debug
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+
+minio:
+  endpoint: http://localhost:9000
+  bucketName: dev
+  accessKey: root
+  secretKey: minio2023
+
+swagger:
+  enable: true
+
+socket:
+  server:
+    host: 0.0.0.0
+    port: 9000
+    enable: true
+  client:
+    serverUrl: http://127.0.0.1:9000
+    enable: false
+
+cron:
+  heartBeat: "0 0/1 * * * ?"
+  deleteTaskRecordStorage: "0 0 1 ? * MON"
+  recordStatistics: "0 0/30 * * * ? "
+  jmeterLogClear: "0 0 2 ? * *"

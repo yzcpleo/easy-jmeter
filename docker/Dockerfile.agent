@@ -1,0 +1,52 @@
+FROM openjdk:8-jre-alpine
+
+LABEL maintainer="Easy JMeter Team"
+LABEL version="2.0.0"
+LABEL description="Easy JMeter Agent - Performance Testing Executor"
+
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN apk add --no-cache tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+
+# 创建应用目录
+WORKDIR /opt/easy-jmeter
+
+# 复制JAR包和启动脚本
+COPY api/target/*.jar ./easyJmeter.jar
+COPY docker/docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# 创建必要目录
+RUN mkdir -p logs temp jmeter-results && \
+    addgroup -g 1000 jmeter && \
+    adduser -D -s /bin/sh -u 1000 -G jmeter jmeter && \
+    chown -R jmeter:jmeter /opt/easy-jmeter
+
+# 安装必要工具
+RUN apk add --no-cache curl procps wget unzip netcat-openbsd
+
+# JMeter环境变量
+ENV JMETER_VERSION=5.6.2
+ENV JMETER_HOME=/opt/apache-jmeter
+ENV PATH=$JMETER_HOME/bin:$PATH
+
+# JVM参数优化（Agent需要更多内存）
+ENV JAVA_OPTS="-server -Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -Djava.awt.headless=true"
+
+# 应用参数
+ENV APP_OPTS="-Dfile.encoding=UTF-8 -Dspring.profiles.active=prod -Dsocket.server.enable=false -Dsocket.client.enable=true"
+
+# 暴露端口
+EXPOSE 5000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5000/actuator/health || exit 1
+
+# 使用非root用户
+USER jmeter
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["agent"]
