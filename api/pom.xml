@@ -59,6 +59,18 @@
             <groupId>io.github.talelin</groupId>
             <artifactId>lin-cms-spring-boot-starter</artifactId>
             <version>0.2.0-RELEASE</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.amdelamar</groupId>
+                    <artifactId>jhash</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amdelamar</groupId>
+            <artifactId>jhash</artifactId>
+            <version>2.2.0</version>
         </dependency>
 
         <dependency>
