@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.github.guojiaxing1995.easyJmeter.common.interceptor.RequestLogInterceptor;
 import io.github.guojiaxing1995.easyJmeter.module.log.MDCAccessServletFilter;
 import io.github.talelin.autoconfigure.bean.PermissionMetaCollector;
+import io.github.talelin.autoconfigure.interceptor.AuthorizeInterceptor;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -45,7 +46,11 @@ public class CommonConfiguration {
     @Bean
     @SuppressWarnings("deprecation")
     public ConfigurationCustomizer configurationCustomizer() {
-        return configuration -> configuration.setUseDeprecatedExecutor(false);
+        return configuration -> {
+            configuration.setUseDeprecatedExecutor(false);
+            // 设置默认枚举类型处理器为 MybatisEnumTypeHandler
+            configuration.setDefaultEnumTypeHandler(com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler.class);
+        };
     }
 
     @Bean
@@ -63,6 +68,15 @@ public class CommonConfiguration {
         return new PermissionMetaCollector();
     }
 
+    /**
+     * 创建 AuthorizeInterceptor bean
+     */
+    @Bean
+    public AuthorizeInterceptor authorizeInterceptor() {
+        return new AuthorizeInterceptor();
+    }
+
+    // LogInterceptor is already provided by LinCms autoconfiguration
 
     /**
      * 接口中，自动转换的有：驼峰转换为下划线，空值输出null
