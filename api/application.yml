@@ -20,15 +20,10 @@ mybatis-plus:
   configuration:
     # 开启下划线转驼峰
     map-underscore-to-camel-case: true
-    # 指定默认枚举类型的类型转换器
-    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
+  type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
   global-config:
     # 开启/关闭 banner 打印
     banner: false
-    db-config:
-      # 逻辑删除（软删除）
-      logic-delete-value: NOW()
-      logic-not-delete-value: 'NULL'
   # mapper路径位置
   mapper-locations: classpath:mapper/*.xml
 

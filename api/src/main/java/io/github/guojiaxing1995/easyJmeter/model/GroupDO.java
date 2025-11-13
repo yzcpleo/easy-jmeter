@@ -2,9 +2,7 @@ package io.github.guojiaxing1995.easyJmeter.model;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.EnumValue;
 import io.github.guojiaxing1995.easyJmeter.common.enumeration.GroupLevelEnum;
-import io.github.guojiaxing1995.easyJmeter.common.handler.GroupLevelEnumTypeHandler;
 import lombok.*;
 
 import java.io.Serializable;
@@ -37,7 +35,7 @@ public class GroupDO extends BaseModel implements Serializable {
     /**
      * 分组级别（root、guest、user，其中 root、guest 分组只能存在一个）
      */
-    @TableField(value = "`level`", typeHandler = GroupLevelEnumTypeHandler.class)
+    @TableField(value = "`level`")
     private GroupLevelEnum level;
 
 }
