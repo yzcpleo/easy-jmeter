@@ -47,6 +47,16 @@ logging:
       max-history:
   config:
 
+# SocketIO 配置
+socket:
+  server:
+    host: 0.0.0.0
+    port: 9006
+    enable: true
+  client:
+    serverUrl: http://127.0.0.1:9006
+    enable: false
+
 swagger:
   enable: true
   application-name: ${spring.application.name}
