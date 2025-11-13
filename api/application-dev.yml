@@ -1,62 +1,33 @@
-#开发环境配置
-
+# 外置开发环境配置
 server:
-  # 服务端口
   port: 5000
 
-
 spring:
-  application:
-    name: easy-jmeter
-  # 激活环境配置
-  profiles:
-    active: dev
-  # 数据源配置，请修改为你项目的实际配置
+  # 数据源配置 - 使用新的MySQL端口
   datasource:
     username: "root"
     password: "root"
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:9081/easy-jmeter?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF8
+    url: jdbc:mysql://localhost:3307/easy-jmeter?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+  # 启用数据库自动初始化
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
   data:
     mongodb:
       database: easyJmeter
       host: localhost
-      port: 9090
+      port: 27018
       username: root
       password: mongo2020
       authentication-database: admin
   influx:
-    url: http://localhost:8086
+    url: http://localhost:8087
     user: root
     password: root
     database: easyJmeter
-
-mybatis-plus:
-  configuration:
-    # 开启下划线转驼峰
-    map-underscore-to-camel-case: true
-    # 指定默认枚举类型的类型转换器
-    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
-  global-config:
-    # 开启/关闭 banner 打印
-    banner: false
-    db-config:
-      # 逻辑删除（软删除）
-      logic-delete-value: NOW()
-      logic-not-delete-value: 'NULL'
-  # mapper路径位置
-  mapper-locations: classpath:mapper/*.xml
-
-lin:
-  cms:
-    # 开启行为日志记录（logger）
-    logger-enabled: true
-    # access token 过期时间，3600s 一个小时
-    token-access-expire: 3600
-    # refresh token 过期时间，2592000s 一个月
-    token-refresh-expire: 2592000
-    # 令牌 secret
-    token-secret: x88Wf0991079889x8796a0Ac68f9ecJJU17c5Vbe8beod7d8d3e695*4
 
 # 开启权限拦截
 auth:
@@ -71,36 +42,29 @@ login-captcha:
 request-log:
   enabled: true
 
-
 logging:
   level:
-    # web信息日志记录
     web: debug
-    # SQL日志记录
     io.github.guojiaxing1995.easyJmeter.mapper: debug
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
 
 minio:
-  endpoint: http://localhost:9085
+  endpoint: http://localhost:9001
   bucketName: dev
   accessKey: root
   secretKey: minio2023
 
 swagger:
   enable: true
-  application-name: ${spring.application.name}
-  application-version: 1.0
-  application-description: 接口文档
-  try-host: http://localhost:${server.port}
 
 socket:
   server:
     host: 0.0.0.0
-    port: 9000
+    port: 9006
     enable: true
   client:
-    serverUrl: http://127.0.0.1:9000
-    enable: true
+    serverUrl: http://127.0.0.1:9006
+    enable: false
 
 cron:
   heartBeat: "0 0/1 * * * ?"
