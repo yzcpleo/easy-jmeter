@@ -62,10 +62,10 @@ if [ "$1" = "server" ]; then
     
 elif [ "$1" = "agent" ]; then
     echo "Starting Easy JMeter Agent..."
-    
+
     # Agent特定环境变量
     export APP_OPTS="${APP_OPTS} -Dsocket.server.enable=false -Dsocket.client.enable=true"
-    
+
     # 检查JMeter安装
     if [ ! -d "$JMETER_HOME" ]; then
         echo "Warning: JMETER_HOME ($JMETER_HOME) not found!"
@@ -73,7 +73,7 @@ elif [ "$1" = "agent" ]; then
     else
         echo "JMeter Home: $JMETER_HOME"
         export PATH="$JMETER_HOME/bin:$PATH"
-        
+
         # 验证JMeter可执行性
         if [ -f "$JMETER_HOME/bin/jmeter" ]; then
             chmod +x "$JMETER_HOME/bin/jmeter"
@@ -82,7 +82,7 @@ elif [ "$1" = "agent" ]; then
             echo "Warning: JMeter executable not found at $JMETER_HOME/bin/jmeter"
         fi
     fi
-    
+
     # 等待Server服务就绪
     if [ -n "$SERVER_HOST" ]; then
         echo "Waiting for server at $SERVER_HOST:${SERVER_PORT:-9000}..."
@@ -91,6 +91,55 @@ elif [ "$1" = "agent" ]; then
             sleep 5
         done
         echo "Server is ready!"
+    fi
+
+elif [ "$1" = "client" ]; then
+    echo "Starting Easy JMeter Client..."
+
+    # Client特定环境变量
+    export APP_OPTS="${APP_OPTS} -Dsocket.server.enable=false -Dsocket.client.enable=true -Dspring.profiles.active=client"
+
+    # 等待宿主机上的服务就绪
+    echo "Checking host services accessibility..."
+
+    # 检查宿主机MySQL
+    echo "Checking MySQL on host.docker.internal:3307..."
+    if nc -z host.docker.internal 3307; then
+        echo "MySQL is reachable on host!"
+    else
+        echo "Warning: MySQL might not be reachable on host.docker.internal:3307"
+    fi
+
+    # 检查宿主机MongoDB
+    echo "Checking MongoDB on host.docker.internal:27018..."
+    if nc -z host.docker.internal 27018; then
+        echo "MongoDB is reachable on host!"
+    else
+        echo "Warning: MongoDB might not be reachable on host.docker.internal:27018"
+    fi
+
+    # 检查宿主机SocketIO服务
+    echo "Checking SocketIO service on host.docker.internal:9006..."
+    if nc -z host.docker.internal 9006; then
+        echo "SocketIO service is reachable on host!"
+    else
+        echo "Warning: SocketIO service might not be reachable on host.docker.internal:9006"
+    fi
+
+    # 检查宿主机InfluxDB
+    echo "Checking InfluxDB on host.docker.internal:8087..."
+    if nc -z host.docker.internal 8087; then
+        echo "InfluxDB is reachable on host!"
+    else
+        echo "Warning: InfluxDB might not be reachable on host.docker.internal:8087"
+    fi
+
+    # 检查宿主机MinIO
+    echo "Checking MinIO on host.docker.internal:9001..."
+    if nc -z host.docker.internal 9001; then
+        echo "MinIO is reachable on host!"
+    else
+        echo "Warning: MinIO might not be reachable on host.docker.internal:9001"
     fi
 fi
 

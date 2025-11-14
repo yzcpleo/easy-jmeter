@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  easyjmeter-client:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: easyjmeter-client
+    ports:
+      - "5000:5000"  # API端口
+      - "9008:9008"  # SocketIO客户端端口
+    environment:
+      # 使用宿主机配置
+      - SPRING_CONFIG_LOCATION=file:/config/application-client.yml
+      - SPRING_PROFILES_ACTIVE=client
+    volumes:
+      # 挂载配置文件
+      - ./docker/application-client.yml:/config/application-client.yml:ro
+      # 挂载日志目录
+      - ./logs:/opt/easy-jmeter/logs
+      # 挂载JMeter测试结果目录
+      - ./jmeter-results:/opt/easy-jmeter/jmeter-results
+      # 挂载临时文件目录
+      - ./temp:/opt/easy-jmeter/temp
+    network_mode: "host"  # 使用宿主机网络，便于访问宿主机服务
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    extra_hosts:
+      # 添加宿主机IP解析
+      - "host.docker.internal:host-gateway"
+
+# 网络配置（如果不使用host模式）
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

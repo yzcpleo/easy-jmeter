@@ -1,6 +1,6 @@
 package io.github.guojiaxing1995.easyJmeter.model;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.github.guojiaxing1995.easyJmeter.common.enumeration.TaskResultEnum;

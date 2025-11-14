@@ -21,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import static io.github.guojiaxing1995.easyJmeter.common.util.Java8Compatibility.listOf;
+
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -168,7 +170,7 @@ public class TaskController {
         Integer projectId = validator.getProjectId() != null ? validator.getProjectId() : 0;
         String text = validator.getText() != null ? validator.getText() : "";
 
-        return aggregateReportRepository.getAggregateReportRecord(projectId, text, label).orElse(Collections.emptyList());
+        return aggregateReportRepository.getAggregateReportRecord(projectId, text, label).orElse(listOf());
 
     }
 

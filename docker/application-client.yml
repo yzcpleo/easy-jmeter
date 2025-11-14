@@ -1,0 +1,114 @@
+# Client模式配置 - 连接宿主机上的服务
+server:
+  port: 5000
+
+spring:
+  # 允许 bean 定义覆盖
+  main:
+    allow-bean-definition-overriding: true
+
+  # 数据源配置 - 连接宿主机MySQL
+  datasource:
+    username: "root"
+    password: "root"
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://host.docker.internal:3307/easy-jmeter?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useUnicode=true&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+    # 设置连接超时时间
+    hikari:
+      connection-timeout: 10000
+      maximum-pool-size: 5
+      minimum-idle: 2
+
+  # 禁用数据库自动初始化
+  sql:
+    init:
+      mode: never
+
+  # MongoDB配置 - 连接宿主机MongoDB
+  data:
+    mongodb:
+      database: easyJmeter
+      host: host.docker.internal
+      port: 27018
+      username: root
+      password: mongo2020
+      authentication-database: admin
+
+  # InfluxDB配置 - 连接宿主机InfluxDB
+  influx:
+    url: http://host.docker.internal:8087
+    user: root
+    password: root
+    database: easyJmeter
+
+# SocketIO客户端配置 - 连接宿主机SocketIO服务
+socket:
+  server:
+    host: 0.0.0.0
+    port: 9008
+    enable: false  # Client模式不启用服务器
+  client:
+    serverUrl: http://host.docker.internal:9006  # 连接宿主机的SocketIO服务
+    enable: true
+
+# 开启权限拦截
+auth:
+  enabled: true
+
+# 开启登录要求验证码
+login-captcha:
+  enabled: false
+  secret: "m49CPM5ak@MDXTzbbT_ZEyMM3KBsBn!h"
+
+# 开启http请求日志记录
+request-log:
+  enabled: true
+
+logging:
+  level:
+    web: info
+    io.github.guojiaxing1995.easyJmeter.mapper: debug
+    org.springframework.data.mongodb.core.MongoTemplate: info
+
+# MinIO配置 - 连接宿主机MinIO
+minio:
+  endpoint: http://host.docker.internal:9001
+  bucketName: client
+  accessKey: root
+  secretKey: minio2023
+
+swagger:
+  enable: true
+
+cron:
+  heartBeat: "0 0/1 * * * ?"
+  deleteTaskRecordStorage: "0 0 1 ? * MON"
+  recordStatistics: "0 0/30 * * * ? "
+  jmeterLogClear: "0 0 2 ? * *"
+
+mybatis-plus:
+  configuration:
+    # 开启下划线转驼峰
+    map-underscore-to-camel-case: true
+    # 禁用默认枚举处理器
+    default-enum-type-handler: io.github.guojiaxing1995.easyJmeter.common.handler.GroupLevelEnumTypeHandler
+  type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
+  type-handlers-package: io.github.guojiaxing1995.easyJmeter.common.handler
+  global-config:
+    # 开启/关闭 banner 打印
+    banner: false
+    db-config:
+      logic-not-delete-value: 'NULL'  # 未删除标记
+  # mapper路径位置
+  mapper-locations: classpath:mapper/*.xml
+
+lin:
+  cms:
+    # 开启行为日志记录（logger）
+    logger-enabled: true
+    # access token 过期时间，3600s 一个小时
+    token-access-expire: 3600
+    # refresh token 过期时间，2592000s 一个月
+    token-refresh-expire: 2592000
+    # 令牌 secret
+    token-secret: x88Wf0991079889x8796a0Ac68f9ecJJU17c5Vbe8beod7d8d3e695*4

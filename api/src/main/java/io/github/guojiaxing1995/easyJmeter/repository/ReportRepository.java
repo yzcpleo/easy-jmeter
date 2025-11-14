@@ -1,6 +1,6 @@
 package io.github.guojiaxing1995.easyJmeter.repository;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import io.github.guojiaxing1995.easyJmeter.model.ReportDO;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;

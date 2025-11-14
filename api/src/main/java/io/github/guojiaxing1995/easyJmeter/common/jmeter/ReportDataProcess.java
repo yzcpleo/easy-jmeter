@@ -1,8 +1,8 @@
 package io.github.guojiaxing1995.easyJmeter.common.jmeter;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import io.github.guojiaxing1995.easyJmeter.model.JFileDO;
 import io.github.guojiaxing1995.easyJmeter.model.ReportDO;
 import io.github.guojiaxing1995.easyJmeter.model.StatisticsDO;

@@ -1,6 +1,6 @@
 package io.github.guojiaxing1995.easyJmeter.service.impl;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.corundumstudio.socketio.SocketIOClient;
