@@ -19,12 +19,7 @@ public enum GroupLevelEnum implements IEnum<Integer> {
     /**
      * 普通用户
      */
-    USER(3),
-    /**
-     * 未知枚举值
-     */
-    UNKNOWN(-1);
-
+    USER(3);
 
     private final Integer value;
 

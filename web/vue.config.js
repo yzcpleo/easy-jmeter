@@ -25,7 +25,11 @@ module.exports = {
       },
     },
   },
-  devServer: {},
+  devServer: {
+    port: 3000,        // 修改前端启动端口为3000
+    host: '0.0.0.0',   // 允许外部访问
+    open: false         // 自动打开浏览器
+  },
   // node_modules依赖项es6语法未转换问题
   transpileDependencies: ['vuex-persist'],
 }
