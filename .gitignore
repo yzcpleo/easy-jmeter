@@ -75,7 +75,7 @@ api/org/
 api/javax/
 api/jakarta/
 api/net/
-# 注意：不排除 api/io/ 因为它包含项目源代码 api/src/main/java/io/
+api/io/
 api/ch/
 api/pl/
 api/commons*/
