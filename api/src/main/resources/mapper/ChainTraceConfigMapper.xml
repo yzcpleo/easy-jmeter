@@ -7,9 +7,9 @@
         <result column="chain_name" jdbcType="VARCHAR" property="chainName"/>
         <result column="chain_description" jdbcType="VARCHAR" property="chainDescription"/>
         <result column="version" jdbcType="VARCHAR" property="version"/>
-        <result column="created_by" jdbcType="INTEGER" property="createdBy"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
         <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
-        <result column="updated_by" jdbcType="INTEGER" property="updatedBy"/>
+        <result column="updated_by" jdbcType="VARCHAR" property="updatedBy"/>
         <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
         <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
         <result column="status" jdbcType="INTEGER" property="status"/>

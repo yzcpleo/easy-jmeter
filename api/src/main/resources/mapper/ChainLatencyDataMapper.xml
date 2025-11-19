@@ -13,7 +13,9 @@
         <result column="latency" jdbcType="BIGINT" property="latency"/>
         <result column="success" jdbcType="INTEGER" property="success"/>
         <result column="error_message" jdbcType="VARCHAR" property="errorMessage"/>
+        <result column="extended_data" jdbcType="VARCHAR" property="extendedData"/>
         <result column="collection_time" jdbcType="TIMESTAMP" property="collectionTime"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
     </resultMap>
 
     <select id="selectByRequestId" resultMap="BaseResultMap">
