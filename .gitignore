@@ -75,7 +75,7 @@ api/org/
 api/javax/
 api/jakarta/
 api/net/
-api/io/
+# 注意：不排除 api/io/ 因为它包含项目源代码 api/src/main/java/io/
 api/ch/
 api/pl/
 api/commons*/
@@ -98,11 +98,18 @@ api/sslext/
 api/xalan/
 api/xerces/
 api/xml-*/
+api/xmlpull/
+api/xmlunit/
+api/xpp3/
 api/zipfs.jar
 api/*.sha1
 api/*.pom
 api/*-sources.jar
 api/*-javadoc.jar
+
+# 额外排除的目录和文件
+api/config/
+api/test-logs/
 
 # 根目录下的Maven依赖（保护源代码目录）
 org/apache/
