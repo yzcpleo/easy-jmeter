@@ -52,7 +52,8 @@
       "Bash(javac:*)",
       "Bash(cleanup_logs.bat)",
       "Bash(\"C:/Program Files/MySQL/MySQL Server 8.2/bin/mysql\":*)",
-      "Bash(xargs git rm:*)"
+      "Bash(xargs git rm:*)",
+      "Bash(git cherry-pick:*)"
     ],
     "deny": [],
     "ask": []
