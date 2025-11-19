@@ -35,7 +35,7 @@ if errorlevel 1 (
 
 REM Display Java version information
 echo [INFO] Checking Java version...
-java -version 2>&1 | findstr /C:"version"
+java -version 2>&1 | findstr "version"
 echo.
 
 REM Check if pom.xml exists
