@@ -68,7 +68,7 @@ public class MachineServiceImpl implements MachineService {
         if (!online) {
             machine = machineMapper.selectByClientId(heartBeatMachineDTO.getClientId());
             machine.setIsOnline(false);
-            machine.setJmeterStatus(JmeterStatusEnum.IDLE);
+            machine.setJmeterStatus(JmeterStatusEnum.IDLE.getValue());
             machine.setClientId("");
             machineMapper.updateById(machine);
         } else {
@@ -98,7 +98,7 @@ public class MachineServiceImpl implements MachineService {
 
     @Override
     public boolean updateMachineStatus(MachineDO machineDO, JmeterStatusEnum status) {
-        machineDO.setJmeterStatus(status);
+        machineDO.setJmeterStatus(status.getValue());
         return machineMapper.updateById(machineDO) > 0;
     }
 
@@ -112,7 +112,7 @@ public class MachineServiceImpl implements MachineService {
         ArrayList<MachineDO> machineDOS = this.getAll();
         for (MachineDO machineDO : machineDOS) {
             machineDO.setIsOnline(false);
-            machineDO.setJmeterStatus(JmeterStatusEnum.IDLE);
+            machineDO.setJmeterStatus(JmeterStatusEnum.IDLE.getValue());
             machineDO.setClientId("");
             machineMapper.updateById(machineDO);
         }

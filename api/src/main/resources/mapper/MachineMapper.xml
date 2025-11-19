@@ -8,7 +8,8 @@
         <result column="path" jdbcType="VARCHAR" property="path"/>
         <result column="version" jdbcType="VARCHAR" property="version"/>
         <result column="is_online" jdbcType="BOOLEAN" property="isOnline"/>
-        <result column="jmeter_status" property="jmeterStatus" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <!-- jmeterStatus 是 Integer 类型，不是枚举类型，因此不需要 typeHandler -->
+        <result column="jmeter_status" jdbcType="INTEGER" property="jmeterStatus"/>
         <result column="client_id" jdbcType="VARCHAR" property="clientId"/>
         <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
         <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>

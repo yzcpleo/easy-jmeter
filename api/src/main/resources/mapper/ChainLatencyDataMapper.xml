@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.ChainLatencyDataMapper">
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.ChainLatencyDataDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="task_id" jdbcType="BIGINT" property="taskId"/>
+        <result column="chain_id" jdbcType="BIGINT" property="chainId"/>
+        <result column="node_id" jdbcType="BIGINT" property="nodeId"/>
+        <result column="request_id" jdbcType="VARCHAR" property="requestId"/>
+        <result column="node_name" jdbcType="VARCHAR" property="nodeName"/>
+        <result column="request_start_time" jdbcType="TIMESTAMP" property="requestStartTime"/>
+        <result column="request_end_time" jdbcType="TIMESTAMP" property="requestEndTime"/>
+        <result column="latency" jdbcType="BIGINT" property="latency"/>
+        <result column="success" jdbcType="INTEGER" property="success"/>
+        <result column="error_message" jdbcType="VARCHAR" property="errorMessage"/>
+        <result column="collection_time" jdbcType="TIMESTAMP" property="collectionTime"/>
+    </resultMap>
+
+    <select id="selectByRequestId" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_latency_data
+        WHERE request_id = #{requestId}
+        ORDER BY collection_time ASC
+    </select>
+
+    <select id="selectByTaskIdAndTimeRange" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_latency_data
+        WHERE task_id = #{taskId}
+          AND collection_time BETWEEN #{startTime} AND #{endTime}
+        ORDER BY collection_time DESC
+    </select>
+
+    <select id="selectByChainIdAndTimeRange" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_latency_data
+        WHERE chain_id = #{chainId}
+          AND (request_start_time BETWEEN #{startTime} AND #{endTime}
+               OR request_end_time BETWEEN #{startTime} AND #{endTime}
+               OR collection_time BETWEEN #{startTime} AND #{endTime})
+        ORDER BY request_start_time DESC, collection_time DESC
+    </select>
+
+    <select id="selectByNodeIdAndTimeRange" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_latency_data
+        WHERE node_id = #{nodeId}
+          AND (request_start_time BETWEEN #{startTime} AND #{endTime}
+               OR request_end_time BETWEEN #{startTime} AND #{endTime}
+               OR collection_time BETWEEN #{startTime} AND #{endTime})
+        ORDER BY request_start_time DESC, collection_time DESC
+    </select>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO chain_latency_data (
+            task_id, chain_id, node_id, request_id, node_name,
+            request_start_time, request_end_time, latency,
+            success, error_message, collection_time
+        )
+        VALUES
+        <foreach collection="dataList" item="item" separator=",">
+            (
+                #{item.taskId}, #{item.chainId}, #{item.nodeId},
+                #{item.requestId}, #{item.nodeName},
+                #{item.requestStartTime}, #{item.requestEndTime},
+                #{item.latency}, #{item.success}, #{item.errorMessage},
+                #{item.collectionTime}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="deleteByCollectionTimeBefore">
+        DELETE FROM chain_latency_data
+        WHERE collection_time &lt; #{beforeTime}
+    </delete>
+
+    <select id="getLatencyStats" resultType="io.github.guojiaxing1995.easyJmeter.mapper.ChainLatencyDataMapper$ChainLatencyStatsDO">
+        SELECT
+            node_id AS nodeId,
+            node_name AS nodeName,
+            COUNT(*) AS totalRequests,
+            SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) AS successfulRequests,
+            SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) AS failedRequests,
+            AVG(latency) AS avgLatency,
+            MAX(latency) AS maxLatency,
+            MIN(latency) AS minLatency,
+            (
+                SELECT latency 
+                FROM chain_latency_data t1
+                WHERE t1.node_id = #{nodeId}
+                  AND (t1.request_start_time BETWEEN #{startTime} AND #{endTime}
+                       OR t1.request_end_time BETWEEN #{startTime} AND #{endTime}
+                       OR t1.collection_time BETWEEN #{startTime} AND #{endTime})
+                  AND (
+                      SELECT COUNT(*) 
+                      FROM chain_latency_data t2
+                      WHERE t2.node_id = #{nodeId}
+                        AND (t2.request_start_time BETWEEN #{startTime} AND #{endTime}
+                             OR t2.request_end_time BETWEEN #{startTime} AND #{endTime}
+                             OR t2.collection_time BETWEEN #{startTime} AND #{endTime})
+                        AND t2.latency &lt;= t1.latency
+                  ) &gt;= CEIL(
+                      (SELECT COUNT(*) FROM chain_latency_data 
+                       WHERE node_id = #{nodeId}
+                         AND (request_start_time BETWEEN #{startTime} AND #{endTime}
+                              OR request_end_time BETWEEN #{startTime} AND #{endTime}
+                              OR collection_time BETWEEN #{startTime} AND #{endTime})) * 0.95
+                  )
+                ORDER BY latency ASC
+                LIMIT 1
+            ) AS p95Latency,
+            (
+                SELECT latency 
+                FROM chain_latency_data t3
+                WHERE t3.node_id = #{nodeId}
+                  AND (t3.request_start_time BETWEEN #{startTime} AND #{endTime}
+                       OR t3.request_end_time BETWEEN #{startTime} AND #{endTime}
+                       OR t3.collection_time BETWEEN #{startTime} AND #{endTime})
+                  AND (
+                      SELECT COUNT(*) 
+                      FROM chain_latency_data t4
+                      WHERE t4.node_id = #{nodeId}
+                        AND (t4.request_start_time BETWEEN #{startTime} AND #{endTime}
+                             OR t4.request_end_time BETWEEN #{startTime} AND #{endTime}
+                             OR t4.collection_time BETWEEN #{startTime} AND #{endTime})
+                        AND t4.latency &lt;= t3.latency
+                  ) &gt;= CEIL(
+                      (SELECT COUNT(*) FROM chain_latency_data 
+                       WHERE node_id = #{nodeId}
+                         AND (request_start_time BETWEEN #{startTime} AND #{endTime}
+                              OR request_end_time BETWEEN #{startTime} AND #{endTime}
+                              OR collection_time BETWEEN #{startTime} AND #{endTime})) * 0.99
+                  )
+                ORDER BY latency ASC
+                LIMIT 1
+            ) AS p99Latency
+        FROM chain_latency_data
+        WHERE node_id = #{nodeId}
+          AND (request_start_time BETWEEN #{startTime} AND #{endTime}
+               OR request_end_time BETWEEN #{startTime} AND #{endTime}
+               OR collection_time BETWEEN #{startTime} AND #{endTime})
+        GROUP BY node_id, node_name
+    </select>
+</mapper>

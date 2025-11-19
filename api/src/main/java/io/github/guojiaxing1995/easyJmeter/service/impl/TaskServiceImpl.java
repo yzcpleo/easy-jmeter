@@ -124,7 +124,7 @@ public class TaskServiceImpl implements TaskService {
             if (machineDO == null) {
                 throw new ParameterException(12303);
             }
-            if (machineDO.getIsOnline().equals(false) || !machineDO.getJmeterStatus().equals(JmeterStatusEnum.IDLE)) {
+            if (machineDO.getIsOnline().equals(false) || !machineDO.getJmeterStatus().equals(JmeterStatusEnum.IDLE.getValue())) {
                 throw new ParameterException(12301);
             }
             // 检查机器是否有有效的SocketIO连接
@@ -165,7 +165,7 @@ public class TaskServiceImpl implements TaskService {
             caseMapper.updateById(caseDO);
             for (Integer machine : machines) {
                 MachineDO machineDO = machineMapper.selectById(machine);
-                machineDO.setJmeterStatus(JmeterStatusEnum.CONFIGURE);
+                machineDO.setJmeterStatus(JmeterStatusEnum.CONFIGURE.getValue());
                 machineMapper.updateById(machineDO);
                 // 记录task日志
                 taskLogMapper.insert(new TaskLogDO(taskDO.getTaskId(),caseDO.getId(),JmeterStatusEnum.CONFIGURE,null,machineDO.getAddress(),machineDO.getId()));

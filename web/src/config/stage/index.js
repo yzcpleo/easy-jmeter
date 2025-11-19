@@ -8,6 +8,7 @@ import caseConfig from './case'
 import taskConfig from './task'
 import hiddenConfig from './hidden'
 import jmeterConfig from './jmeter'
+import chainConfig from './chain'
 
 // eslint-disable-next-line import/no-mutable-exports
 let homeRouter = [
@@ -58,6 +59,7 @@ let homeRouter = [
   taskConfig,
   hiddenConfig,
   jmeterConfig,
+  chainConfig,
 ]
 
 // 接入插件

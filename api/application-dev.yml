@@ -13,6 +13,15 @@ spring:
   sql:
     init:
       mode: never
+  
+  # DevTools 热加载配置
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java,src/main/resources
+      exclude: static/**,public/**,templates/**
+    livereload:
+      enabled: true
 
   data:
     mongodb:
@@ -73,9 +82,12 @@ cron:
 
 mybatis-plus:
   configuration:
+  
+    # 指定默认枚举类型的类型转换器
+  default-enum-type-handler: org.apache.ibatis.type.EnumOrdinalTypeHandler
     # 开启下划线转驼峰
-    map-underscore-to-camel-case: true
-  type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
+  map-underscore-to-camel-case: true
+
   global-config:
     # 开启/关闭 banner 打印
     banner: false
@@ -84,6 +96,8 @@ mybatis-plus:
       logic-not-delete-value: 'NULL'  # 未删除标记
   # mapper路径位置
   mapper-locations: classpath:mapper/*.xml
+
+  type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
   
 
 

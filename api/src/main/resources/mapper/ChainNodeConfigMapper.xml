@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.ChainNodeConfigMapper">
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.ChainNodeConfigDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="chain_id" jdbcType="BIGINT" property="chainId"/>
+        <result column="node_name" jdbcType="VARCHAR" property="nodeName"/>
+        <result column="node_type" jdbcType="VARCHAR" property="nodeType"/>
+        <result column="node_description" jdbcType="VARCHAR" property="nodeDescription"/>
+        <result column="sequence_order" jdbcType="INTEGER" property="sequenceOrder"/>
+        <result column="log_path" jdbcType="VARCHAR" property="logPath"/>
+        <result column="log_pattern" jdbcType="VARCHAR" property="logPattern"/>
+        <result column="timestamp_pattern" jdbcType="VARCHAR" property="timestampPattern"/>
+        <result column="latency_pattern" jdbcType="VARCHAR" property="latencyPattern"/>
+        <result column="request_id_pattern" jdbcType="VARCHAR" property="requestIdPattern"/>
+        <result column="data_mapping" jdbcType="VARCHAR" property="dataMapping"/>
+        <result column="node_host" jdbcType="VARCHAR" property="nodeHost"/>
+        <result column="node_port" jdbcType="INTEGER" property="nodePort"/>
+        <result column="node_username" jdbcType="VARCHAR" property="nodeUsername"/>
+        <result column="node_password" jdbcType="VARCHAR" property="nodePassword"/>
+        <result column="os_type" jdbcType="VARCHAR" property="osType"/>
+        <result column="connection_type" jdbcType="VARCHAR" property="connectionType"/>
+        <result column="ssh_key_path" jdbcType="VARCHAR" property="sshKeyPath"/>
+        <result column="connection_timeout" jdbcType="INTEGER" property="connectionTimeout"/>
+        <result column="read_timeout" jdbcType="INTEGER" property="readTimeout"/>
+        <result column="custom_shell_script" jdbcType="VARCHAR" property="customShellScript"/>
+        <result column="use_custom_script" jdbcType="INTEGER" property="useCustomScript"/>
+        <result column="parse_method" jdbcType="VARCHAR" property="parseMethod"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+        <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+    </resultMap>
+
+    <select id="selectByChainIdOrderBySequence" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_node_config
+        WHERE chain_id = #{chainId}
+          AND delete_time IS NULL
+        ORDER BY sequence_order ASC
+    </select>
+
+    <select id="selectByChainId" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_node_config
+        WHERE chain_id = #{chainId}
+          AND delete_time IS NULL
+    </select>
+
+    <select id="selectByChainIdAndNodeName" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_node_config
+        WHERE chain_id = #{chainId}
+          AND node_name = #{nodeName}
+          AND delete_time IS NULL
+        LIMIT 1
+    </select>
+
+    <select id="getMaxSequenceOrder" resultType="java.lang.Integer">
+        SELECT MAX(sequence_order)
+        FROM chain_node_config
+        WHERE chain_id = #{chainId}
+          AND delete_time IS NULL
+    </select>
+
+    <update id="updateSequenceOrder">
+        UPDATE chain_node_config
+        SET sequence_order = #{sequenceOrder},
+            updated_time = NOW()
+        WHERE id = #{nodeId}
+          AND delete_time IS NULL
+    </update>
+
+    <update id="deleteByChainId">
+        UPDATE chain_node_config
+        SET delete_time = NOW()
+        WHERE chain_id = #{chainId}
+          AND delete_time IS NULL
+    </update>
+
+    <update id="updateDeleteTime">
+        UPDATE chain_node_config
+        SET delete_time = #{deleteTime}
+        WHERE id = #{id}
+          AND delete_time IS NULL
+    </update>
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.ChainTraceConfigMapper">
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.ChainTraceConfigDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="task_id" jdbcType="BIGINT" property="taskId"/>
+        <result column="chain_name" jdbcType="VARCHAR" property="chainName"/>
+        <result column="chain_description" jdbcType="VARCHAR" property="chainDescription"/>
+        <result column="version" jdbcType="VARCHAR" property="version"/>
+        <result column="created_by" jdbcType="INTEGER" property="createdBy"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+        <result column="updated_by" jdbcType="INTEGER" property="updatedBy"/>
+        <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+    </resultMap>
+
+    <select id="selectByTaskId" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_trace_config
+        WHERE task_id = #{taskId}
+          AND delete_time IS NULL
+    </select>
+
+    <select id="selectByChainName" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_trace_config
+        WHERE chain_name = #{chainName}
+          AND delete_time IS NULL
+        LIMIT 1
+    </select>
+
+    <select id="existsByChainName" resultType="java.lang.Boolean">
+        SELECT COUNT(*) > 0
+        FROM chain_trace_config
+        WHERE chain_name = #{chainName}
+          AND delete_time IS NULL
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+</mapper>

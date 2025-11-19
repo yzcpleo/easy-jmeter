@@ -3,8 +3,8 @@ package io.github.guojiaxing1995.easyJmeter.model;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.github.guojiaxing1995.easyJmeter.common.enumeration.JmeterStatusEnum;
 import lombok.*;
+import org.apache.ibatis.type.JdbcType;
 
 import java.io.Serializable;
 
@@ -28,8 +28,8 @@ public class MachineDO extends BaseModel implements Serializable {
 
     private Boolean isOnline;
 
-    @TableField(value = "`jmeter_status`")
-    private JmeterStatusEnum jmeterStatus;
+    @TableField(value = "`jmeter_status`", jdbcType = JdbcType.INTEGER)
+    private Integer jmeterStatus;
 
     @JsonIgnore
     @TableField(value = "`client_id`")
