@@ -69,32 +69,37 @@ apache-jmeter/
 *.bak
 *~
 
-# 依赖库文件夹
+# Maven本地仓库结构 - 排除所有Maven依赖
+api/com/
+api/org/
+api/javax/
+api/jakarta/
+api/net/
+api/io/
+api/ch/
+api/pl/
+api/commons*/
 api/antlr/
 api/aopalliance/
 api/asm/
 api/avalon-framework/
 api/backport-util-concurrent/
 api/bsf/
-api/ch/
 api/classworlds/
-api/commons-*/
 api/dnsjava/
 api/dom4j/
-api/io/
-api/jakarta/
-api/javax/
 api/jcharts/
 api/junit/
 api/log4j/
 api/logkit/
 api/mysql/
-api/net/
-api/org/
 api/oro/
-api/pl/
 api/sslext/
 api/xalan/
 api/xerces/
 api/xml-*/
 api/zipfs.jar
+api/*.sha1
+api/*.pom
+api/*-sources.jar
+api/*-javadoc.jar
