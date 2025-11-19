@@ -1,123 +1,122 @@
 @echo off
 chcp 65001 >nul
 REM =================================
-REM Easy JMeter Server 开发模式启动脚本
-REM 支持热加载，修改代码后自动重启
+REM Easy JMeter Server Development Mode Startup Script
+REM Supports hot reload, auto restart after code changes
 REM =================================
 
 echo.
 echo ========================================
-echo   启动 Easy JMeter Server (开发模式)
-echo   支持热加载 - 修改代码后自动重启
+echo   Starting Easy JMeter Server (Dev Mode)
+echo   Hot Reload Enabled - Auto Restart on Code Changes
 echo ========================================
 echo.
 
-REM 设置变量 - 确保UTF-8编码
+REM Set environment variables - Ensure UTF-8 encoding
 set JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8
 set MAVEN_OPTS=-Xms512m -Xmx1024m -Dfile.encoding=UTF-8
 
-REM 检查 Maven 是否可用
+REM Check if Maven is available
 where mvn >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] 未找到 Maven，请确保 Maven 已安装并在 PATH 中
-    echo [INFO] 或者使用 start-dev-simple.cmd 启动已编译的 JAR 包
+    echo [ERROR] Maven not found, please ensure Maven is installed and in PATH
+    echo [INFO] Or use start-dev-simple.cmd to start the compiled JAR file
     pause
     exit /b 1
 )
 
-REM 检查 Java 是否可用
+REM Check if Java is available
 where java >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] 未找到 Java，请确保 Java 已安装并在 PATH 中
+    echo [ERROR] Java not found, please ensure Java is installed and in PATH
     pause
     exit /b 1
 )
 
-REM 显示 Java 版本信息
-echo [INFO] 检查 Java 版本...
+REM Display Java version information
+echo [INFO] Checking Java version...
 java -version 2>&1 | findstr /C:"version"
 echo.
 
-REM 检查 pom.xml 是否存在
+REM Check if pom.xml exists
 if not exist "pom.xml" (
-    echo [ERROR] 未找到 pom.xml 文件
-    echo [INFO] 请确保在 api 目录下运行此脚本
+    echo [ERROR] pom.xml file not found
+    echo [INFO] Please ensure you are running this script in the api directory
     pause
     exit /b 1
 )
 
-REM 检查端口是否被占用，如果被占用则等待释放
-echo [INFO] 检查端口占用情况...
+REM Check if ports are in use, wait for release if occupied
+echo [INFO] Checking port availability...
 set HTTP_PORT=5000
 set SOCKET_PORT=9006
 set PORT_CHECKED=0
 
-REM 检查HTTP端口5000
+REM Check HTTP port 5000
 netstat -ano | findstr ":%HTTP_PORT%" >nul 2>&1
 if not errorlevel 1 (
-    echo [WARN] 端口 %HTTP_PORT% 已被占用，等待端口释放...
+    echo [WARN] Port %HTTP_PORT% is in use, waiting for release...
     set PORT_CHECKED=1
-    REM 等待最多10秒
+    REM Wait up to 10 seconds
     for /L %%i in (1,1,10) do (
         timeout /t 1 /nobreak >nul 2>&1
         netstat -ano | findstr ":%HTTP_PORT%" >nul 2>&1
         if errorlevel 1 (
-            echo [INFO] 端口 %HTTP_PORT% 已释放
-            goto :check_socket_port
+            echo [INFO] Port %HTTP_PORT% has been released
+            goto check_socket_port
         )
-        echo [INFO] 等待中... %%i/10秒
+        echo [INFO] Waiting... %%i/10 seconds
     )
-    echo [WARN] 端口 %HTTP_PORT% 仍然被占用，尝试继续启动...
+    echo [WARN] Port %HTTP_PORT% is still in use, attempting to continue...
 )
 
 :check_socket_port
-REM 检查SocketIO端口9006
+REM Check SocketIO port 9006
 netstat -ano | findstr ":%SOCKET_PORT%" >nul 2>&1
 if not errorlevel 1 (
-    echo [WARN] 端口 %SOCKET_PORT% 已被占用，等待端口释放...
+    echo [WARN] Port %SOCKET_PORT% is in use, waiting for release...
     set PORT_CHECKED=1
-    REM 等待最多10秒
+    REM Wait up to 10 seconds
     for /L %%i in (1,1,10) do (
         timeout /t 1 /nobreak >nul 2>&1
         netstat -ano | findstr ":%SOCKET_PORT%" >nul 2>&1
         if errorlevel 1 (
-            echo [INFO] 端口 %SOCKET_PORT% 已释放
-            goto :start_app
+            echo [INFO] Port %SOCKET_PORT% has been released
+            goto start_app
         )
-        echo [INFO] 等待中... %%i/10秒
+        echo [INFO] Waiting... %%i/10 seconds
     )
-    echo [WARN] 端口 %SOCKET_PORT% 仍然被占用，尝试继续启动...
+    echo [WARN] Port %SOCKET_PORT% is still in use, attempting to continue...
 )
 
 :start_app
 if %PORT_CHECKED%==1 (
-    echo [INFO] 等待完成，继续启动...
+    echo [INFO] Waiting completed, continuing startup...
     echo.
 )
 
-echo [INFO] 正在启动开发模式（支持热加载）...
-echo [INFO] 修改代码后，服务会自动重启
-echo [INFO] 按 Ctrl+C 停止服务
+echo [INFO] Starting development mode (hot reload enabled)...
+echo [INFO] Service will auto-restart after code changes
+echo [INFO] Press Ctrl+C to stop the service
 echo.
 
-REM 先编译项目（如果需要）
+REM Compile project first (if needed)
 if not exist "target\classes" (
-    echo [INFO] 首次启动，正在编译项目...
+    echo [INFO] First startup, compiling project...
     mvn compile -DskipTests -Dfile.encoding=UTF-8
     if errorlevel 1 (
-        echo [ERROR] 编译失败，请检查错误信息
+        echo [ERROR] Compilation failed, please check error messages
         pause
         exit /b 1
     )
 )
 
-REM 使用 Maven 启动，支持热加载
-REM 使用完整插件坐标，避免找不到插件的问题
+REM Start using Maven with hot reload support
+REM Use full plugin coordinates to avoid plugin not found issues
 mvn org.springframework.boot:spring-boot-maven-plugin:2.7.5:run -Dspring-boot.run.profiles=dev -Dspring-boot.run.arguments="--spring.config.additional-location=file:./application-dev.yml" -Dfile.encoding=UTF-8
 
 if errorlevel 1 (
     echo.
-    echo [ERROR] 启动失败
+    echo [ERROR] Startup failed
     pause
 )
-
