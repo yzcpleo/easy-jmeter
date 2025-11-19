@@ -103,3 +103,18 @@ api/*.sha1
 api/*.pom
 api/*-sources.jar
 api/*-javadoc.jar
+
+# 根目录下的Maven依赖（保护源代码目录）
+org/apache/
+org/codehaus/
+org/mozilla/
+org/sonatype/
+org/eclipse/
+org/jboss/
+com/fasterxml/
+com/google/
+com/sun/
+javax/
+jakarta/
+net/
+# 注意：不排除 io/ 因为它包含项目源代码 api/src/main/java/io/
