@@ -38,10 +38,52 @@
     </el-row>
     <el-row :gutter="25">
       <el-col :span="6">
-        <div class="box">
-          <div class="case-search"><el-input placeholder="输入用例名称进行过滤" v-model="caseName" clearable></el-input></div>
+        <div class="box case-list-box">
+          <div class="case-list-header">
+            <div class="header-title">
+              <i class="iconfont icon-list"></i>
+              <span>用例列表</span>
+              <el-badge :value="cases.length" class="case-count-badge" type="primary" />
+            </div>
+          </div>
+          <div class="case-search">
+            <el-input 
+              placeholder="搜索用例..." 
+              v-model="caseName" 
+              clearable 
+              prefix-icon="Search">
+            </el-input>
+          </div>
           <div class="case-list">
-            <div class="case-item" v-for="item in cases" :key="item.id" v-bind:class="{'item-color': !item.is_choose, 'item-color-choose': item.is_choose}" @click="handleChooseCase(item)">{{ item.name }}</div>
+            <div 
+              class="case-item" 
+              v-for="item in displayedCases" 
+              :key="item.id" 
+              :class="{'case-item-active': item.is_choose}" 
+              @click="handleChooseCase(item)">
+              <div class="case-item-content">
+                <i class="iconfont icon-file-text case-icon"></i>
+                <span class="case-name">{{ item.name }}</span>
+              </div>
+              <i class="iconfont icon-right case-arrow" v-if="item.is_choose"></i>
+            </div>
+            
+            <div class="load-more" v-if="cases.length > displayLimit && displayedCases.length < cases.length">
+              <el-button text type="primary" @click="loadMore">
+                <i class="iconfont icon-down"></i>
+                加载更多 (剩余 {{ cases.length - displayedCases.length }} 个)
+              </el-button>
+            </div>
+            
+            <div class="case-info" v-if="cases.length > 50 && !caseName">
+              <i class="iconfont icon-info-circle"></i>
+              <p>用例较多，建议使用搜索功能快速查找</p>
+            </div>
+            
+            <div class="case-empty" v-if="cases.length === 0">
+              <i class="iconfont icon-inbox"></i>
+              <p>{{ caseName ? '未找到匹配的用例' : '暂无用例' }}</p>
+            </div>
           </div>
         </div>
       </el-col>
@@ -107,7 +149,13 @@ export default {
     const casesOriginal = ref([])
     const selected = ref(null)
     const statisticsData = ref([])
+    const displayLimit = ref(50)
     const {proxy} = getCurrentInstance()
+    
+    // 计算属性：返回限制数量的用例列表
+    const displayedCases = computed(() => {
+      return cases.value.slice(0, displayLimit.value)
+    })
 
     onMounted(() => {
       getGreeting()
@@ -184,6 +232,13 @@ export default {
           cases.value.push(casesOriginal.value[i])
         }
       }
+      // 搜索时重置显示限制
+      displayLimit.value = 50
+    }
+    
+    const loadMore = () => {
+      // 每次加载更多 50 个
+      displayLimit.value = Math.min(displayLimit.value + 50, cases.value.length)
     }
 
     const getStatisticsById = async () => {
@@ -191,11 +246,15 @@ export default {
       try {
         res = await get(`/v1/common/statistics/${selected.value}` , { showBackend: true })
         statisticsData.value = res
-        setTimeout( function(){
-          initChart()
-          setChartOption()
-        }, 500 )
+        // 确保数据完整后才初始化图表
+        if (res && res.graph_data && res.graph_data.responseTimeInfos && res.graph_data.throughputAndErrorInfos) {
+          setTimeout( function(){
+            initChart()
+            setChartOption()
+          }, 500 )
+        }
       } catch (error) {
+        console.error('Failed to load statistics:', error)
       }
     }
 
@@ -280,6 +339,13 @@ export default {
         },
         series: [],
       }
+      
+      // 安全检查：确保数据存在
+      if (!statisticsData.value || !statisticsData.value.graph_data || !statisticsData.value.graph_data[infos]) {
+        console.warn('Statistics data not available for:', infos)
+        return option
+      }
+      
       option.series = statisticsData.value.graph_data[infos].series
       option.title.text = statisticsData.value.graph_data[infos].titleCN
       option.legend.data = statisticsData.value.graph_data[infos].labels
@@ -365,6 +431,9 @@ export default {
       initChart,
       resizeHandler,
       getOption,
+      displayedCases,
+      displayLimit,
+      loadMore,
     }
   },
 }
@@ -441,54 +510,256 @@ export default {
     height: 28vh;
     margin: 1VH 0;
   }
+  .case-list-box {
+    overflow: hidden;
+    border: 1px solid #e8eef5;
+    
+    .case-list-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0f2f5;
+      background: linear-gradient(135deg, #f5f8fc 0%, #ffffff 100%);
+      
+      .header-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #303133;
+        
+        .iconfont {
+          font-size: 20px;
+          color: #409eff;
+        }
+        
+        .case-count-badge {
+          margin-left: auto;
+          
+          :deep(.el-badge__content) {
+            font-size: 11px;
+            padding: 2px 6px;
+            height: 18px;
+            line-height: 18px;
+          }
+        }
+      }
+    }
+  }
+  
+  .case-search {
+    padding: 12px 16px;
+    background: #ffffff;
+    
+    :deep(.el-input__wrapper) {
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: all 0.3s ease;
+      
+      &:hover {
+        box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+      }
+      
+      &.is-focus {
+        box-shadow: 0 2px 12px rgba(64, 158, 255, 0.25);
+      }
+    }
+  }
+  
   .case-list {
     width: 100%;
-    overflow: auto;
-    height: calc(70vh - 35px);
+    overflow-y: auto;
+    height: calc(70vh - 140px);
+    padding: 8px 12px;
+    
     .case-item {
-      height: 35px;
-      line-height: 35px;
-      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      margin-bottom: 6px;
       cursor: pointer;
-      border-radius: 4px;
-      padding: 0 5px;
-      margin: 3px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      border-radius: 8px;
+      background: #f8f9fa;
+      border: 1px solid transparent;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
       overflow: hidden;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: #409eff;
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+      }
+      
+      .case-item-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+        
+        .case-icon {
+          font-size: 16px;
+          color: #909399;
+          flex-shrink: 0;
+          transition: all 0.3s ease;
+        }
+        
+        .case-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #606266;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
+      }
+      
+      .case-arrow {
+        font-size: 14px;
+        color: #409eff;
+        opacity: 0;
+        transform: translateX(-8px);
+        transition: all 0.3s ease;
+      }
+      
+      &:hover {
+        background: #e8f4ff;
+        border-color: #b3d8ff;
+        transform: translateX(4px);
+        
+        .case-icon {
+          color: #409eff;
+          transform: scale(1.1);
+        }
+        
+        .case-name {
+          color: #409eff;
+        }
+      }
+      
+      &.case-item-active {
+        background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+        border-color: #409eff;
+        box-shadow: 0 3px 8px rgba(64, 158, 255, 0.25);
+        
+        &::before {
+          transform: scaleY(1);
+          background: #ffffff;
+        }
+        
+        .case-item-content {
+          .case-icon {
+            color: #ffffff;
+            transform: scale(1.1);
+          }
+          
+          .case-name {
+            color: #ffffff;
+            font-weight: 600;
+          }
+        }
+        
+        .case-arrow {
+          opacity: 1;
+          transform: translateX(0);
+          color: #ffffff;
+        }
+        
+        &:hover {
+          transform: translateX(3px);
+          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+        }
+      }
     }
-    .item-color {
-      color: #88A1D7;
-      background: #EBEFF8;
-      border:1px solid #88A1D7;
+    
+    .case-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: #c0c4cc;
+      
+      .iconfont {
+        font-size: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+      
+      p {
+        font-size: 14px;
+        margin: 0;
+      }
     }
-    .item-color-choose {
-      color: #b1c6f5;
-      background: #4b7ff0;
-      border:1px solid #b1c6f5;
+    
+    .load-more {
+      display: flex;
+      justify-content: center;
+      padding: 16px 0;
+      margin-top: 8px;
+      border-top: 1px solid #f0f2f5;
+      
+      :deep(.el-button) {
+        font-size: 13px;
+        font-weight: 500;
+        
+        .iconfont {
+          margin-right: 4px;
+          font-size: 14px;
+        }
+      }
+    }
+    
+    .case-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      margin: 8px 12px;
+      background: linear-gradient(135deg, #fff7e6 0%, #fff3d9 100%);
+      border-left: 3px solid #ffa940;
+      border-radius: 6px;
+      
+      .iconfont {
+        font-size: 16px;
+        color: #fa8c16;
+        flex-shrink: 0;
+      }
+      
+      p {
+        font-size: 12px;
+        color: #ad6800;
+        margin: 0;
+        line-height: 1.5;
+      }
     }
   }
-  .case-list::-webkit-scrollbar{
-    display: none;
+  
+  .case-list::-webkit-scrollbar {
+    width: 6px;
   }
-  .case-list:hover::-webkit-scrollbar{
-    width:6px;
-    height:6px;
-    display: block;
+  
+  .case-list::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
   }
-  .case-list::-webkit-scrollbar-track{
-    background: rgb(239, 239, 239);
-    border-radius:2px;
-  }
-  .case-list::-webkit-scrollbar-thumb{
-    background: #dad4d4;
-    border-radius:10px;
-  }
-  .case-list::-webkit-scrollbar-thumb:hover{
-    background: rgb(175, 173, 173);
-  }
-  .case-search {
-    padding: 3px 3px 0 3px;
+  
+  .case-list::-webkit-scrollbar-thumb {
+    background: #dcdfe6;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: #c0c4cc;
+    }
   }
   .box {
     width: 100%;
