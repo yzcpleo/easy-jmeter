@@ -283,14 +283,28 @@ public class JmeterExternal {
             if (taskDO.getRealtime()) {
                 String database = influxDBProperties.getDatabase();
                 String url = influxDBProperties.getUrl();
+                String user = influxDBProperties.getUser();
+                String password = influxDBProperties.getPassword();
                 String taskId = taskDO.getTaskId();
+                
+                // 构建包含用户名和密码的 InfluxDB URL
+                StringBuilder influxdbUrlBuilder = new StringBuilder(url);
+                influxdbUrlBuilder.append("/write?db=").append(database);
+                if (user != null && !user.trim().isEmpty()) {
+                    influxdbUrlBuilder.append("&u=").append(user);
+                }
+                if (password != null && !password.trim().isEmpty()) {
+                    influxdbUrlBuilder.append("&p=").append(password);
+                }
+                String influxdbUrl = influxdbUrlBuilder.toString();
+                
                 Arguments arguments = new Arguments();
                 arguments.setProperty(new StringProperty(TestElement.GUI_CLASS, "ArgumentsPanel"));
                 arguments.setProperty(new StringProperty(TestElement.TEST_CLASS, "Arguments"));
                 arguments.setProperty(new StringProperty(TestElement.NAME, "arguments"));
                 arguments.setEnabled(true);
                 arguments.addArgument("influxdbMetricsSender", "org.apache.jmeter.visualizers.backend.influxdb.HttpMetricsSender", "=");
-                arguments.addArgument("influxdbUrl", url+"/write?db="+database, "=");
+                arguments.addArgument("influxdbUrl", influxdbUrl, "=");
                 arguments.addArgument("application", taskId, "=");
                 arguments.addArgument("measurement", "jmeter", "=");
                 arguments.addArgument("summaryOnly", "false", "=");
