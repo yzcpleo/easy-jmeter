@@ -11,33 +11,110 @@
       </div>
       <el-main v-if="loading" v-loading = "loading" element-loading-text="Loading..." element-loading-background="#F9FAFB" style="height: 600px;"/>
       <div class="list" v-else>
-        <div class="case" v-for="(item,index) in casesRes" @click.stop="handleDetail(item)" @mouseover="caseMouseover(item)" @mouseleave="caseMouseout" >
-          <div class="line line-name">
-            <div class="name">{{item.name}}</div>
-            <div class="last-run">{{item.creator}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{item.create_time}}</div>
+        <div class="case-card" v-for="(item,index) in casesRes" :key="item.id" @click.stop="handleDetail(item)" @mouseover="caseMouseover(item)" @mouseleave="caseMouseout">
+          <div class="card-header">
+            <div class="case-title">
+              <i class="iconfont icon-file-text title-icon"></i>
+              <span class="name">{{item.name}}</span>
+            </div>
+            <div class="case-meta">
+              <i class="iconfont icon-user meta-icon"></i>
+              <span class="creator">{{item.creator}}</span>
+              <i class="iconfont icon-time meta-icon"></i>
+              <span class="create-time">{{item.create_time}}</span>
+            </div>
           </div>
-          <div class="line">
-            <div class="progress">
-              <el-progress :text-inside="true" :stroke-width="23" :duration="60"
-              :percentage=getProgressNum(item.task_progress)
-              :color=getProgressColor(item) 
-              :striped=setProgressStriped(item)
-              striped-flow>
-                <span>{{item.status.desc}}</span>
+          
+          <div class="card-body">
+            <div class="status-section">
+              <el-progress 
+                :text-inside="true" 
+                :stroke-width="26" 
+                :duration="60"
+                :percentage="getProgressNum(item.task_progress)"
+                :color="getProgressColor(item)" 
+                :striped="setProgressStriped(item)"
+                striped-flow
+                class="status-progress">
+                <span class="status-text">{{item.status.desc}}</span>
               </el-progress>
             </div>
-            <div class="line-icon">
-              <i class="iconfont icon-start" @click.stop="executeCase(item.id)"></i>
-              <i class="iconfont icon-config" @click.stop="modifyQPSLimit(item.task_id, item.qps_limit)"></i>
-            </div>
           </div>
-          <div class="line">
-            <div class="line-icon">
-              <i class="iconfont icon-stop" @click.stop="handleStop(item.task_id)"></i>
-              <i class="iconfont icon-debug" @click.stop="handleDebug(item.id)"></i>
-              <i class="iconfont icon-modify" @click.stop="handleEdit(item.id)"></i>
-              <i class="iconfont icon-remove" @click.stop="handleDelete(item.id)"></i>
-              <i class="iconfont icon-history" @click.stop="handleHistory(item.name)"></i>
+          
+          <div class="card-footer">
+            <div class="action-buttons">
+              <el-tooltip content="执行" placement="top">
+                <el-button 
+                  circle 
+                  type="success" 
+                  size="small" 
+                  @click.stop="executeCase(item.id)"
+                  class="action-btn">
+                  <i class="iconfont icon-start"></i>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="配置QPS" placement="top">
+                <el-button 
+                  circle 
+                  type="primary" 
+                  size="small" 
+                  @click.stop="modifyQPSLimit(item.task_id, item.qps_limit)"
+                  class="action-btn">
+                  <i class="iconfont icon-config"></i>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="停止" placement="top">
+                <el-button 
+                  circle 
+                  type="warning" 
+                  size="small" 
+                  @click.stop="handleStop(item.task_id)"
+                  class="action-btn">
+                  <i class="iconfont icon-stop"></i>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="调试" placement="top">
+                <el-button 
+                  circle 
+                  type="info" 
+                  size="small" 
+                  @click.stop="handleDebug(item.id)"
+                  class="action-btn">
+                  <i class="iconfont icon-debug"></i>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="编辑" placement="top">
+                <el-button 
+                  circle 
+                  type="primary" 
+                  size="small" 
+                  plain
+                  @click.stop="handleEdit(item.id)"
+                  class="action-btn">
+                  <i class="iconfont icon-modify"></i>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button 
+                  circle 
+                  type="danger" 
+                  size="small" 
+                  @click.stop="handleDelete(item.id)"
+                  class="action-btn">
+                  <i class="iconfont icon-remove"></i>
+                </el-button>
+              </el-tooltip>
+              <el-tooltip content="历史记录" placement="top">
+                <el-button 
+                  circle 
+                  type="info" 
+                  size="small" 
+                  plain
+                  @click.stop="handleHistory(item.name)"
+                  class="action-btn">
+                  <i class="iconfont icon-history"></i>
+                </el-button>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -344,87 +421,197 @@
   <style lang="scss" scoped>
   .container {
     padding: 0 30px;
+    min-height: calc(100vh - 200px);
   
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin: 20px 0;
+      margin: 24px 0 32px 0;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e4e7ed;
+  
+      .newBtn {
+        :deep(.el-button) {
+          padding: 12px 24px;
+          font-size: 14px;
+          font-weight: 500;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+          transition: all 0.3s ease;
+          
+          &:hover {
+            box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+            transform: translateY(-1px);
+          }
+        }
+      }
   
       .search {
         display: flex;
         align-items: center;
-        height: 59px;
-        line-height: 59px;
+        gap: 16px;
         color: $parent-title-color;
-        font-size: 16px;
-        font-weight: 500;
+        font-size: 14px;
+        
         .el-select {
-          margin-right: 20px;
-          width: 350px;
+          width: 280px;
+          
+          :deep(.el-input__wrapper) {
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            
+            &:hover {
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            }
+          }
+        }
+        
+        .el-input {
+          width: 300px;
+          
+          :deep(.el-input__wrapper) {
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            
+            &:hover {
+              box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            }
+          }
         }
       }
     }
 
     .list {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+      gap: 24px;
+      padding-bottom: 24px;
+      
+      @media (max-width: 1200px) {
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      }
+      
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
     }
-    .case:hover {
-      background-color: #b3d8ff;
+    
+    .case-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e4e7ed;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
       cursor: pointer;
-      color: #f5faff;
-    }
-    .case {
-      width: calc(50% - 32px);
-      margin: 15px;
-      border-radius: 5px;
-      box-shadow: 0px 0px 12px rgba(0, 0, 0, .12);
-      background-color: #f5faff;
-      color: #1979d9;
-      // background: #ecf5ff;
-      border:1px solid #b3d8ff;
-
-      .line {
-        height: 45px;
-        line-height: 45px;
-        align-items: center;
-        position: relative;
-        .progress {
-          width: 75%;
-          transform: translate(0, -50%);  
-          position: absolute;  
-          top: 50%;
-          margin-left: 8px;
-          .el-progress {
-            width: 100%;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      
+      &:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        transform: translateY(-4px);
+        border-color: #409eff;
+      }
+      
+      .card-header {
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid #f0f2f5;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        
+        .case-title {
+          display: flex;
+          align-items: center;
+          margin-bottom: 12px;
+          
+          .title-icon {
+            font-size: 20px;
+            color: #409eff;
+            margin-right: 10px;
+            display: inline-block;
+          }
+          
+          .name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #303133;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            flex: 1;
+            line-height: 1.4;
           }
         }
-        .line-icon {
-          transform: translate(0, -50%);  
-          position: absolute;
-          top: 50%;
-          right: 0;
-          .iconfont {
-            margin-right: 25px;
-            font-size: 1.5rem;
+        
+        .case-meta {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 12px;
+          color: #909399;
+          
+          .meta-icon {
+            font-size: 14px;
+            color: #c0c4cc;
+            display: inline-block;
+          }
+          
+          .creator, .create-time {
+            display: flex;
+            align-items: center;
+            gap: 4px;
           }
         }
       }
-      .line-name {
-        display: flex;
-        justify-content: space-between;
-        .name {
-          margin: 0 0 0 8px;
-          font-size: 20px;
-          white-space:nowrap;
-          text-overflow:ellipsis;
-          overflow:hidden;
-          width: 72%;
+      
+      .card-body {
+        padding: 20px 24px;
+        flex: 1;
+        
+        .status-section {
+          .status-progress {
+            :deep(.el-progress-bar__outer) {
+              border-radius: 10px;
+              overflow: hidden;
+            }
+            
+            .status-text {
+              font-size: 13px;
+              font-weight: 500;
+              color: #ffffff;
+              text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            }
+          }
         }
-        .last-run {
-          margin: 0 8px 0 0;
-          font-size: 10px;
+      }
+      
+      .card-footer {
+        padding: 16px 24px;
+        background: #fafbfc;
+        border-top: 1px solid #f0f2f5;
+        
+        .action-buttons {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          
+          .action-btn {
+            transition: all 0.2s ease;
+            
+            &:hover {
+              transform: scale(1.1);
+            }
+            
+            .iconfont {
+              font-size: 16px;
+              display: inline-block;
+            }
+          }
         }
       }
     }
