@@ -58,15 +58,35 @@ public class ReportDataProcess {
         Pattern statisticsPattern = Pattern.compile("createTable\\(\\$\\(\"#statisticsTable\"\\),([\\s\\S]*?), function\\(index, item\\)\\{");
         Matcher statisticsPatternMatcher = statisticsPattern.matcher(jsStr);
         if (statisticsPatternMatcher.find()) {
-            JSONObject statistics = JSONObject.parseObject(statisticsPatternMatcher.group(1));
-            List<String> titlesList = listOf("label", "samples", "fail", "error", "average", "min", "max", "median", "90th", "95th", "99th", "transactions", "received", "Sent");
-            statistics.put("titles", titlesList);
-            List<JSONObject> combinedList = new ArrayList<>(statistics.getJSONArray("overall").toJavaList(JSONObject.class));
-            combinedList.addAll(statistics.getJSONArray("items").toJavaList(JSONObject.class));
-            statistics.put("items", combinedList);
-            List<JSONObject> statisticsTable = matchList(statistics);
-            map.put("statisticsTable", statisticsTable);
-
+            try {
+                JSONObject statistics = JSONObject.parseObject(statisticsPatternMatcher.group(1));
+                List<String> titlesList = listOf("label", "samples", "fail", "error", "average", "min", "max", "median", "90th", "95th", "99th", "transactions", "received", "Sent");
+                statistics.put("titles", titlesList);
+                
+                // 修复：overall 是一个对象，不是数组，需要单独处理
+                List<JSONObject> combinedList = new ArrayList<>();
+                if (statistics.containsKey("overall") && statistics.getJSONObject("overall") != null) {
+                    combinedList.add(statistics.getJSONObject("overall"));
+                    log.debug("成功添加 overall 对象到 statisticsTable");
+                } else {
+                    log.warn("statistics 中没有找到 overall 对象");
+                }
+                
+                // items 是数组，正常处理
+                if (statistics.containsKey("items") && statistics.getJSONArray("items") != null) {
+                    combinedList.addAll(statistics.getJSONArray("items").toJavaList(JSONObject.class));
+                    log.debug("成功添加 items 数组到 statisticsTable，共 {} 条记录", statistics.getJSONArray("items").size());
+                } else {
+                    log.warn("statistics 中没有找到 items 数组");
+                }
+                
+                statistics.put("items", combinedList);
+                List<JSONObject> statisticsTable = matchList(statistics);
+                map.put("statisticsTable", statisticsTable);
+                log.info("成功解析 statisticsTable，共 {} 条记录", statisticsTable.size());
+            } catch (Exception e) {
+                log.error("解析 statisticsTable 失败", e);
+            }
         }
 
         Pattern errorsPattern = Pattern.compile("createTable\\(\\$\\(\"#errorsTable\"\\),([\\s\\S]*?), function\\(index, item\\)\\{");
@@ -82,14 +102,35 @@ public class ReportDataProcess {
         Pattern top5ErrorsPattern = Pattern.compile("createTable\\(\\$\\(\"#top5ErrorsBySamplerTable\"\\),([\\s\\S]*?), function\\(index, item\\)\\{");
         Matcher top5ErrorsPatternMatcher = top5ErrorsPattern.matcher(jsStr);
         if (top5ErrorsPatternMatcher.find()) {
-            JSONObject top5Errors = JSONObject.parseObject(top5ErrorsPatternMatcher.group(1));
-            List<String> titlesList = listOf("sample", "samples", "errors", "errorA", "errorsA", "errorB", "errorsB", "errorC", "errorsC", "errorD", "errorsD", "errorE", "errorsE");
-            top5Errors.put("titles", titlesList);
-            List<JSONObject> combinedList = new ArrayList<>(top5Errors.getJSONArray("overall").toJavaList(JSONObject.class));
-            combinedList.addAll(top5Errors.getJSONArray("items").toJavaList(JSONObject.class));
-            top5Errors.put("items", combinedList);
-            List<JSONObject> top5ErrorsBySamplerTable = this.matchList(top5Errors);
-            map.put("top5ErrorsBySamplerTable", top5ErrorsBySamplerTable);
+            try {
+                JSONObject top5Errors = JSONObject.parseObject(top5ErrorsPatternMatcher.group(1));
+                List<String> titlesList = listOf("sample", "samples", "errors", "errorA", "errorsA", "errorB", "errorsB", "errorC", "errorsC", "errorD", "errorsD", "errorE", "errorsE");
+                top5Errors.put("titles", titlesList);
+                
+                // 修复：overall 是一个对象，不是数组，需要单独处理
+                List<JSONObject> combinedList = new ArrayList<>();
+                if (top5Errors.containsKey("overall") && top5Errors.getJSONObject("overall") != null) {
+                    combinedList.add(top5Errors.getJSONObject("overall"));
+                    log.debug("成功添加 overall 对象到 top5ErrorsBySamplerTable");
+                } else {
+                    log.warn("top5Errors 中没有找到 overall 对象");
+                }
+                
+                // items 是数组，正常处理
+                if (top5Errors.containsKey("items") && top5Errors.getJSONArray("items") != null) {
+                    combinedList.addAll(top5Errors.getJSONArray("items").toJavaList(JSONObject.class));
+                    log.debug("成功添加 items 数组到 top5ErrorsBySamplerTable，共 {} 条记录", top5Errors.getJSONArray("items").size());
+                } else {
+                    log.warn("top5Errors 中没有找到 items 数组");
+                }
+                
+                top5Errors.put("items", combinedList);
+                List<JSONObject> top5ErrorsBySamplerTable = this.matchList(top5Errors);
+                map.put("top5ErrorsBySamplerTable", top5ErrorsBySamplerTable);
+                log.info("成功解析 top5ErrorsBySamplerTable，共 {} 条记录", top5ErrorsBySamplerTable.size());
+            } catch (Exception e) {
+                log.error("解析 top5ErrorsBySamplerTable 失败", e);
+            }
         }
         log.info("获取DashBoardData完成");
         return map;
