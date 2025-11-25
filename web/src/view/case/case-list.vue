@@ -101,9 +101,10 @@
                 circle 
                 type="primary" 
                 size="small" 
+                plain
                 @click.stop="handleEditJmx(item.id)"
                 class="action-btn">
-                <i class="iconfont icon-edit"></i>
+                <i class="iconfont icon-daima1"></i>
               </el-button>
             </el-tooltip>
             <el-tooltip content="编辑" placement="top">
