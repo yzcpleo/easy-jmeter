@@ -60,4 +60,11 @@
         WHERE c.delete_time IS NULL
         AND c.project = #{project}
     </select>
+
+    <update id="updateDeleteTime">
+        UPDATE `case`
+        SET delete_time = NOW()
+        WHERE id = #{id}
+          AND delete_time IS NULL
+    </update>
 </mapper>

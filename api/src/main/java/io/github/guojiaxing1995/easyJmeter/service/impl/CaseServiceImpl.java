@@ -24,6 +24,7 @@ import io.github.guojiaxing1995.easyJmeter.vo.CaseDebugVO;
 import io.github.guojiaxing1995.easyJmeter.vo.CaseInfoPlusVO;
 import io.github.guojiaxing1995.easyJmeter.vo.CaseInfoVO;
 import io.github.guojiaxing1995.easyJmeter.vo.JFileVO;
+import io.github.talelin.autoconfigure.exception.FailedException;
 import io.github.talelin.autoconfigure.exception.NotFoundException;
 import io.github.talelin.autoconfigure.exception.ParameterException;
 import lombok.extern.slf4j.Slf4j;
@@ -101,7 +102,11 @@ public class CaseServiceImpl implements CaseService {
         if (caseDO == null){
             throw new NotFoundException(12201);
         }
-        return caseMapper.deleteById(id) > 0;
+        int affectedRows = caseMapper.updateDeleteTime(id);
+        if (affectedRows == 0) {
+            throw new FailedException(12202);
+        }
+        return true;
     }
 
     @Override
