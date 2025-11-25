@@ -140,16 +140,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, reactive, computed, watch, defineProps, defineEmits } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, Document, FolderOpened, Link, Coffee } from '@element-plus/icons-vue'
 
-// Import property editors (we'll create these next)
 import ThreadGroupEditor from './ThreadGroupEditor.vue'
 import HttpSamplerEditor from './HttpSamplerEditor.vue'
 import JavaSamplerEditor from './JavaSamplerEditor.vue'
 import HeaderManagerEditor from './HeaderManagerEditor.vue'
 import CSVDataSetEditor from './CSVDataSetEditor.vue'
+import SchemaDrivenEditor from './SchemaDrivenEditor.vue'
+import { schemaElements, getSchemaForType } from './schema/jmxElementSchema'
 
 const props = defineProps({
   modelValue: {
@@ -176,6 +177,8 @@ const showAddDialog = ref(false)
 const newElementType = ref('')
 const newElementName = ref('')
 
+const schemaTypeSet = new Set(Object.keys(schemaElements))
+
 const supportedNodeTypes = new Set([
   'TestPlan',
   'ThreadGroup',
@@ -184,11 +187,20 @@ const supportedNodeTypes = new Set([
   'JavaSampler',
   'CSVDataSet',
   'HeaderManager',
-  'ResultCollector'
+  'ResultCollector',
+  ...schemaTypeSet
 ])
 
-// Available element types based on current selection
-const availableElementTypes = computed(() => {
+const schemaTypeOptions = (parentType) => {
+  return Object.entries(schemaElements)
+    .filter(([, meta]) => meta.allowedParents?.includes(parentType))
+    .map(([type, meta]) => ({
+      label: meta.label,
+      value: type
+    }))
+}
+
+const baseElementTypes = computed(() => {
   if (!currentNode.value) {
     return []
   }
@@ -210,6 +222,22 @@ const availableElementTypes = computed(() => {
   }
   
   return []
+})
+
+// Available element types based on current selection
+const availableElementTypes = computed(() => {
+  if (!currentNode.value) {
+    return []
+  }
+  const schemaOptions = schemaTypeOptions(currentNode.value.type)
+  const merged = [...baseElementTypes.value, ...schemaOptions]
+  const map = new Map()
+  merged.forEach((item) => {
+    if (!map.has(item.value)) {
+      map.set(item.value, item)
+    }
+  })
+  return Array.from(map.values())
 })
 
 const canAddChild = computed(() => {
@@ -272,16 +300,22 @@ const getIconClass = (type) => {
 }
 
 // Get editor component for element type
+const editorMap = {
+  'ThreadGroup': ThreadGroupEditor,
+  'HTTPSampler': HttpSamplerEditor,
+  'HTTPSamplerProxy': HttpSamplerEditor,  // JMeter uses HTTPSamplerProxy
+  'JavaSampler': JavaSamplerEditor,
+  'CSVDataSet': CSVDataSetEditor,
+  'HeaderManager': HeaderManagerEditor
+}
 const getEditorComponent = (type) => {
-  const editorMap = {
-    'ThreadGroup': ThreadGroupEditor,
-    'HTTPSampler': HttpSamplerEditor,
-    'HTTPSamplerProxy': HttpSamplerEditor,  // JMeter uses HTTPSamplerProxy
-    'JavaSampler': JavaSamplerEditor,
-    'CSVDataSet': CSVDataSetEditor,
-    'HeaderManager': HeaderManagerEditor
+  if (editorMap[type]) {
+    return editorMap[type]
   }
-  return editorMap[type] || null
+  if (schemaTypeSet.has(type)) {
+    return SchemaDrivenEditor
+  }
+  return null
 }
 
 // Add element
@@ -310,6 +344,11 @@ const confirmAddElement = () => {
     enabled: true,
     properties: {},
     children: []
+  }
+  const schemaMeta = getSchemaForType(newElementType.value)
+  if (schemaMeta) {
+    newElement.guiClass = schemaMeta.guiClass
+    newElement.testClass = schemaMeta.testClass
   }
   
   // Initialize properties based on type
@@ -419,7 +458,14 @@ const getDefaultName = (type) => {
     'HeaderManager': 'HTTP Header Manager',
     'ResultCollector': 'View Results Tree'
   }
-  return nameMap[type] || type
+  if (nameMap[type]) {
+    return nameMap[type]
+  }
+  const schemaMeta = getSchemaForType(type)
+  if (schemaMeta) {
+    return schemaMeta.label
+  }
+  return type
 }
 
 const initializeProperties = (element) => {
@@ -472,6 +518,13 @@ const initializeProperties = (element) => {
         shareMode: 'shareMode.all'
       }
       break
+    default: {
+      const schemaMeta = getSchemaForType(element.type)
+      if (schemaMeta) {
+        element.properties = { ...(schemaMeta.defaults || {}) }
+      }
+      break
+    }
   }
 }
 

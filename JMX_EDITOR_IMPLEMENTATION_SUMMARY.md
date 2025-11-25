@@ -256,6 +256,15 @@ Load JSON from jmx_structure → Display in tree editor → User edits → Save 
    - User guide for JMX editor
    - API documentation
    - Developer guide for adding new element types
+   - Config-driven schema reference (see `JMX_CONFIG_SCHEMA_PLAN.md`)
+
+### Config-Driven Schema Reference
+
+- The canonical plan/table is documented in `JMX_CONFIG_SCHEMA_PLAN.md`. Update it whenever new samplers/config elements are introduced.
+- UI schema definitions live in `web/src/components/jmx-editor/schema/jmxElementSchema.js`. Each entry specifies `testClass`, `guiClass`, allowed parents, default values, and field metadata.
+- `SchemaDrivenEditor.vue` + `schema-fields/*` render forms automatically from the schema, so adding a sampler usually means editing the schema only.
+- Always reuse real JMeter property keys (`HTTPSampler.domain`, `dubbo.interface`, etc.) to keep JSON ↔ JMX conversion lossless.
+- Need a new input type? Add a reusable component under `schema-fields/` and reference it from the schema entry.
 
 6. **Optional Enhancements**:
    - Add more JMeter element types (Assertions, Timers, Controllers)
