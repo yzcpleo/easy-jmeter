@@ -96,6 +96,16 @@
                 <i class="iconfont icon-debug"></i>
               </el-button>
             </el-tooltip>
+            <el-tooltip content="编辑JMX" placement="top">
+              <el-button 
+                circle 
+                type="primary" 
+                size="small" 
+                @click.stop="handleEditJmx(item.id)"
+                class="action-btn">
+                <i class="iconfont icon-edit"></i>
+              </el-button>
+            </el-tooltip>
             <el-tooltip content="编辑" placement="top">
               <el-button 
                 circle 
@@ -250,6 +260,10 @@
       const handleDebug = id => {
         debugVisible.value = true
         debugCaseId.value = id
+      }
+
+      const handleEditJmx = id => {
+        router.push({ name: 'jmx-builder', params: { id } })
       }
 
       const handleDetail = item => {
@@ -473,6 +487,7 @@
         handleDetail,
         handleHistory,
         handleDebug,
+        handleEditJmx,
         debugVisible,
         debugCaseId,
         closeDebug,

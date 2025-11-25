@@ -6,7 +6,22 @@ const routes = [
     name: 'Home',
     redirect: '/about',
     component: () => import('@/view/home/home'),
-    children: [...homeRouter],
+    children: [
+      ...homeRouter,
+      // JMX Builder route (manually added for reliability)
+      {
+        path: '/case/jmx-builder/:id?',
+        name: 'jmx-builder',
+        component: () => import('@/view/case/jmx-builder.vue'),
+        meta: {
+          title: 'JMX Builder',
+          icon: 'iconfont icon-edit',
+          permission: ['用例管理'],
+          type: 'view',
+          keepAlive: false,
+        }
+      }
+    ],
   },
   {
     path: '/login',

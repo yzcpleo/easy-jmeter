@@ -24,11 +24,13 @@ export default {
       return this.$store.getters.getStageInfo(this.$route.name)
     },
     menuTabs() {
-      if (this.stageInfo.length < 2) {
+      // Handle case where stageInfo is not an array or is undefined
+      if (!this.stageInfo || !Array.isArray(this.stageInfo) || this.stageInfo.length < 2) {
         return []
       }
       const father = this.stageInfo[this.stageInfo.length - 2]
-      if (father.type === 'tab') {
+      // Add safety check for father object
+      if (father && father.type === 'tab' && Array.isArray(father.children)) {
         const menus = []
         father.children.forEach(item => {
           if (item.inNav) {

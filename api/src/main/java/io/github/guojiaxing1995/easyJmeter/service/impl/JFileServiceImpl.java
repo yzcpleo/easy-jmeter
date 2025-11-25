@@ -264,4 +264,69 @@ public class JFileServiceImpl implements JFileService {
         return path.toString();
     }
 
+    @Override
+    public File getFileFromUrl(JFileDO jFileDO) throws IOException {
+        if (jFileDO == null) {
+            return null;
+        }
+        
+        String path = jFileDO.getPath();
+        if (path == null || path.isEmpty()) {
+            log.warn("File path is null or empty for file ID: {}", jFileDO.getId());
+            return null;
+        }
+        
+        // Try local file first
+        File localFile = new File(path);
+        if (localFile.exists() && localFile.isFile()) {
+            log.info("Found local file: {}", path);
+            return localFile;
+        }
+        
+        // Try with store directory prefix
+        String storeDir = fileProperties.getStoreDir();
+        File prefixedFile = new File(storeDir, path);
+        if (prefixedFile.exists() && prefixedFile.isFile()) {
+            log.info("Found file with store dir prefix: {}", prefixedFile.getAbsolutePath());
+            return prefixedFile;
+        }
+        
+        // Download from MinIO to temp directory
+        try {
+            // Parse path to extract bucket and object name
+            // Path format: /bucketName/objectName (e.g., /dev/1764042285427.jmx)
+            String[] pathParts = path.split("/");
+            String bucket = pathParts.length > 1 ? pathParts[1] : bucketName;
+            String objectName = pathParts.length > 2 ? pathParts[2] : path;
+            
+            // Create temp file
+            String tempDir = System.getProperty("java.io.tmpdir");
+            String fileName = objectName; // Use objectName as filename
+            File tempFile = new File(tempDir, "jmx_temp_" + System.currentTimeMillis() + "_" + fileName);
+            
+            log.info("Downloading file from MinIO: bucket={}, object={}, tempFile={}", 
+                     bucket, objectName, tempFile.getAbsolutePath());
+            
+            // Download object from MinIO
+            minioClient.downloadObject(
+                DownloadObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectName)
+                    .filename(tempFile.getAbsolutePath())
+                    .build()
+            );
+            
+            if (tempFile.exists() && tempFile.length() > 0) {
+                log.info("Successfully downloaded file from MinIO: {} bytes", tempFile.length());
+                return tempFile;
+            } else {
+                log.error("Downloaded file is empty or doesn't exist");
+                return null;
+            }
+        } catch (Exception e) {
+            log.error("Failed to download file from MinIO: path={}, error={}", path, e.getMessage(), e);
+            throw new IOException("Failed to download file from storage: " + e.getMessage(), e);
+        }
+    }
+
 }

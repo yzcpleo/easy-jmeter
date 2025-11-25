@@ -18,7 +18,15 @@ export default {
       return this.$store.getters.getStageInfo(this.$route.name)
     },
     titleArr() {
+      // Handle case where stageInfo is not an array (e.g., for dynamically added routes)
+      if (!this.stageInfo) {
+        return [this.$route.meta?.title || this.$route.name || 'Page']
+      }
+      if (Array.isArray(this.stageInfo)) {
       return this.stageInfo.map(item => item.title).filter(item => !!item)
+      }
+      // If stageInfo is a single object
+      return [this.stageInfo.title || this.$route.meta?.title || this.$route.name || 'Page']
     },
   },
 }

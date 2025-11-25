@@ -5,6 +5,7 @@ import io.github.guojiaxing1995.easyJmeter.vo.CutFileVO;
 import io.github.guojiaxing1995.easyJmeter.vo.JFileVO;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -35,4 +36,11 @@ public interface JFileService {
     List<JFileDO> searchJtlByTaskId(String taskId);
 
     String getStoreDir();
+    
+    /**
+     * Get file from URL or local path. Downloads file from MinIO/URL to temp directory if needed.
+     * @param jFileDO File metadata from database
+     * @return File object, or null if file cannot be accessed
+     */
+    File getFileFromUrl(JFileDO jFileDO) throws IOException;
 }

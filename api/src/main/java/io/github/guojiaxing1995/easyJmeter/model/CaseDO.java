@@ -29,4 +29,6 @@ public class CaseDO extends BaseModel implements Serializable {
     private String jar;
 
     private String description;
+    
+    private String creationMode = "UPLOAD"; // UPLOAD or BUILDER
 }
