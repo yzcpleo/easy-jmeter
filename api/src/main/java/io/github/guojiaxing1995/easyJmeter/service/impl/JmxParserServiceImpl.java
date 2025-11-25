@@ -579,53 +579,54 @@ public class JmxParserServiceImpl implements JmxParserService {
                 HTTPSampler httpSampler = new HTTPSampler();
                 
                 // Protocol
-                String protocol = getStringValue(props, "protocol", "http");
+                String protocol = getStringValueWithFallback(props, "http", "protocol", "HTTPSampler.protocol");
                 httpSampler.setProtocol(protocol);
                 
                 // Domain
-                String domain = getStringValue(props, "domain", "");
+                String domain = getStringValueWithFallback(props, "", "domain", "HTTPSampler.domain");
                 httpSampler.setDomain(domain);
                 
                 // Port - handle both Integer and String
-                int port = getIntValue(props, "port", 0);
+                int port = getIntValueWithFallback(props, 0, "port", "HTTPSampler.port");
                 httpSampler.setPort(port);
                 
                 // Path
-                String path = getStringValue(props, "path", "");
+                String path = getStringValueWithFallback(props, "", "path", "HTTPSampler.path");
                 httpSampler.setPath(path);
                 
                 // Method
-                String method = getStringValue(props, "method", "GET");
+                String method = getStringValueWithFallback(props, "GET", "method", "HTTPSampler.method");
                 httpSampler.setMethod(method);
                 
                 // Content Encoding
-                String encoding = getStringValue(props, "contentEncoding", "UTF-8");
+                String encoding = getStringValueWithFallback(props, "UTF-8", "contentEncoding", "HTTPSampler.contentEncoding");
                 httpSampler.setContentEncoding(encoding);
                 
                 // Boolean flags - handle both Boolean and String
-                boolean followRedirects = getBooleanValue(props, "followRedirects", true);
+                boolean followRedirects = getBooleanValueWithFallback(props, true, "followRedirects", "HTTPSampler.follow_redirects");
                 httpSampler.setFollowRedirects(followRedirects);
                 
-                boolean autoRedirects = getBooleanValue(props, "autoRedirects", false);
+                boolean autoRedirects = getBooleanValueWithFallback(props, false, "autoRedirects", "HTTPSampler.auto_redirects");
                 httpSampler.setAutoRedirects(autoRedirects);
                 
-                boolean useKeepAlive = getBooleanValue(props, "useKeepAlive", true);
+                boolean useKeepAlive = getBooleanValueWithFallback(props, true, "useKeepAlive", "HTTPSampler.use_keepalive");
                 httpSampler.setUseKeepAlive(useKeepAlive);
                 
                 // Timeouts
-                if (props.containsKey("connectTimeout")) {
-                    int connectTimeout = getIntValue(props, "connectTimeout", 0);
+                int connectTimeout = getIntValueWithFallback(props, -1, "connectTimeout", "HTTPSampler.connect_timeout");
+                if (connectTimeout >= 0) {
                     httpSampler.setConnectTimeout(String.valueOf(connectTimeout));
                 }
-                if (props.containsKey("responseTimeout")) {
-                    int responseTimeout = getIntValue(props, "responseTimeout", 0);
+                int responseTimeout = getIntValueWithFallback(props, -1, "responseTimeout", "HTTPSampler.response_timeout");
+                if (responseTimeout >= 0) {
                     httpSampler.setResponseTimeout(String.valueOf(responseTimeout));
                 }
                 
                 // Parameters
                 Arguments arguments = new Arguments();
-                if (props.containsKey("parameters") && props.get("parameters") != null) {
-                    List<Map<String, Object>> params = (List<Map<String, Object>>) props.get("parameters");
+                Object parameters = getFirstNonNull(props, "parameters", "HTTPSampler.Arguments");
+                if (parameters instanceof List) {
+                    List<Map<String, Object>> params = (List<Map<String, Object>>) parameters;
                     for (Map<String, Object> param : params) {
                         String key = getStringValue(param, "key", "");
                         String value = getStringValue(param, "value", "");
@@ -636,8 +637,9 @@ public class JmxParserServiceImpl implements JmxParserService {
                 }
                 
                 // Body data
-                if (props.containsKey("bodyData") && props.get("bodyData") != null) {
-                    String bodyData = getStringValue(props, "bodyData", "");
+                Object bodyDataObj = getFirstNonNull(props, "bodyData", "HTTPSampler.postBodyRaw");
+                if (bodyDataObj != null) {
+                    String bodyData = bodyDataObj.toString();
                     if (!bodyData.isEmpty()) {
                         arguments = new Arguments();
                         arguments.addArgument("", bodyData, "=");
@@ -848,6 +850,18 @@ public class JmxParserServiceImpl implements JmxParserService {
         return value.toString();
     }
     
+    private String getStringValueWithFallback(Map<String, Object> map, String defaultValue, String... keys) {
+        if (map == null) {
+            return defaultValue;
+        }
+        for (String key : keys) {
+            if (map.containsKey(key) && map.get(key) != null) {
+                return map.get(key).toString();
+            }
+        }
+        return defaultValue;
+    }
+    
     /**
      * Helper method to safely get int value from map
      */
@@ -867,6 +881,27 @@ public class JmxParserServiceImpl implements JmxParserService {
         }
     }
     
+    private int getIntValueWithFallback(Map<String, Object> map, int defaultValue, String... keys) {
+        if (map == null) {
+            return defaultValue;
+        }
+        for (String key : keys) {
+            if (!map.containsKey(key) || map.get(key) == null) {
+                continue;
+            }
+            Object value = map.get(key);
+            if (value instanceof Number) {
+                return ((Number) value).intValue();
+            }
+            try {
+                return Integer.parseInt(value.toString());
+            } catch (NumberFormatException e) {
+                log.warn("Failed to parse int value for key {}: {}", key, value);
+            }
+        }
+        return defaultValue;
+    }
+    
     /**
      * Helper method to safely get boolean value from map
      */
@@ -880,6 +915,25 @@ public class JmxParserServiceImpl implements JmxParserService {
         }
         if (value instanceof String) {
             return "true".equalsIgnoreCase((String) value);
+        }
+        return defaultValue;
+    }
+    
+    private boolean getBooleanValueWithFallback(Map<String, Object> map, boolean defaultValue, String... keys) {
+        if (map == null) {
+            return defaultValue;
+        }
+        for (String key : keys) {
+            if (!map.containsKey(key) || map.get(key) == null) {
+                continue;
+            }
+            Object value = map.get(key);
+            if (value instanceof Boolean) {
+                return (Boolean) value;
+            }
+            if (value instanceof String) {
+                return "true".equalsIgnoreCase((String) value);
+            }
         }
         return defaultValue;
     }
@@ -901,6 +955,18 @@ public class JmxParserServiceImpl implements JmxParserService {
             log.warn("Failed to parse long value for key {}: {}", key, value);
             return defaultValue;
         }
+    }
+    
+    private Object getFirstNonNull(Map<String, Object> map, String... keys) {
+        if (map == null) {
+            return null;
+        }
+        for (String key : keys) {
+            if (map.containsKey(key) && map.get(key) != null) {
+                return map.get(key);
+            }
+        }
+        return null;
     }
     
     private void applyDefaultClassMetadata(JmxTreeNodeDTO node) {
