@@ -9,6 +9,7 @@ import org.apache.jmeter.control.LoopController;
 import org.apache.jmeter.protocol.http.control.Header;
 import org.apache.jmeter.protocol.http.control.HeaderManager;
 import org.apache.jmeter.protocol.http.sampler.HTTPSampler;
+import org.apache.jmeter.protocol.http.util.HTTPArgument;
 import org.apache.jmeter.protocol.java.sampler.JavaSampler;
 import org.apache.jmeter.reporters.ResultCollector;
 import org.apache.jmeter.save.SaveService;
@@ -631,7 +632,10 @@ public class JmxParserServiceImpl implements JmxParserService {
                         String key = getStringValue(param, "key", "");
                         String value = getStringValue(param, "value", "");
                         if (!key.isEmpty()) {
-                            arguments.addArgument(key, value, "=");
+                            HTTPArgument httpArgument = new HTTPArgument(key, value);
+                            httpArgument.setAlwaysEncoded(false);
+                            httpArgument.setMetaData("=");
+                            arguments.addArgument(httpArgument);
                         }
                     }
                 }
@@ -642,7 +646,12 @@ public class JmxParserServiceImpl implements JmxParserService {
                     String bodyData = bodyDataObj.toString();
                     if (!bodyData.isEmpty()) {
                         arguments = new Arguments();
-                        arguments.addArgument("", bodyData, "=");
+                        HTTPArgument bodyArgument = new HTTPArgument();
+                        bodyArgument.setAlwaysEncoded(false);
+                        bodyArgument.setMetaData("=");
+                        bodyArgument.setName("");
+                        bodyArgument.setValue(bodyData);
+                        arguments.addArgument(bodyArgument);
                         httpSampler.setPostBodyRaw(true);
                     }
                 }
