@@ -38,6 +38,18 @@ public class JmxParserServiceImpl implements JmxParserService {
     
     private static boolean jmeterInitialized = false;
     
+    private static final Map<String, ClassMetadata> DEFAULT_CLASS_METADATA = new HashMap<>();
+    static {
+        DEFAULT_CLASS_METADATA.put("TestPlan", new ClassMetadata("TestPlanGui", "TestPlan"));
+        DEFAULT_CLASS_METADATA.put("ThreadGroup", new ClassMetadata("ThreadGroupGui", "ThreadGroup"));
+        DEFAULT_CLASS_METADATA.put("HTTPSampler", new ClassMetadata("HttpTestSampleGui", "HTTPSamplerProxy"));
+        DEFAULT_CLASS_METADATA.put("HTTPSamplerProxy", new ClassMetadata("HttpTestSampleGui", "HTTPSamplerProxy"));
+        DEFAULT_CLASS_METADATA.put("JavaSampler", new ClassMetadata("JavaTestSamplerGui", "JavaSampler"));
+        DEFAULT_CLASS_METADATA.put("CSVDataSet", new ClassMetadata("TestBeanGUI", "CSVDataSet"));
+        DEFAULT_CLASS_METADATA.put("HeaderManager", new ClassMetadata("HeaderPanel", "HeaderManager"));
+        DEFAULT_CLASS_METADATA.put("ResultCollector", new ClassMetadata("ViewResultsFullVisualizer", "ResultCollector"));
+    }
+    
     @PostConstruct
     public void initJMeter() {
         if (jmeterInitialized) {
@@ -519,6 +531,8 @@ public class JmxParserServiceImpl implements JmxParserService {
      */
     @SuppressWarnings("unchecked")
     private TestElement buildTestElement(JmxTreeNodeDTO node) {
+        applyDefaultClassMetadata(node);
+        
         TestElement element = null;
         Map<String, Object> props = node.getProperties();
         
@@ -886,6 +900,44 @@ public class JmxParserServiceImpl implements JmxParserService {
         } catch (NumberFormatException e) {
             log.warn("Failed to parse long value for key {}: {}", key, value);
             return defaultValue;
+        }
+    }
+    
+    private void applyDefaultClassMetadata(JmxTreeNodeDTO node) {
+        if (node == null || node.getType() == null) {
+            return;
+        }
+        ClassMetadata metadata = DEFAULT_CLASS_METADATA.get(node.getType());
+        if (metadata == null) {
+            return;
+        }
+        if (isBlank(node.getGuiClass())) {
+            node.setGuiClass(metadata.getGuiClass());
+        }
+        if (isBlank(node.getTestClass())) {
+            node.setTestClass(metadata.getTestClass());
+        }
+    }
+    
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+    
+    private static class ClassMetadata {
+        private final String guiClass;
+        private final String testClass;
+        
+        ClassMetadata(String guiClass, String testClass) {
+            this.guiClass = guiClass;
+            this.testClass = testClass;
+        }
+        
+        String getGuiClass() {
+            return guiClass;
+        }
+        
+        String getTestClass() {
+            return testClass;
         }
     }
 }

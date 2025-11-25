@@ -152,6 +152,17 @@ import CSVDataSetEditor from './CSVDataSetEditor.vue'
 import SchemaDrivenEditor from './SchemaDrivenEditor.vue'
 import { schemaElements, getSchemaForType } from './schema/jmxElementSchema'
 
+const builtinClassMetadata = {
+  TestPlan: { guiClass: 'TestPlanGui', testClass: 'TestPlan' },
+  ThreadGroup: { guiClass: 'ThreadGroupGui', testClass: 'ThreadGroup' },
+  HTTPSampler: { guiClass: 'HttpTestSampleGui', testClass: 'HTTPSamplerProxy' },
+  HTTPSamplerProxy: { guiClass: 'HttpTestSampleGui', testClass: 'HTTPSamplerProxy' },
+  JavaSampler: { guiClass: 'JavaTestSamplerGui', testClass: 'JavaSampler' },
+  CSVDataSet: { guiClass: 'TestBeanGUI', testClass: 'CSVDataSet' },
+  HeaderManager: { guiClass: 'HeaderPanel', testClass: 'HeaderManager' },
+  ResultCollector: { guiClass: 'ViewResultsFullVisualizer', testClass: 'ResultCollector' }
+}
+
 const props = defineProps({
   modelValue: {
     type: Object,
@@ -349,6 +360,9 @@ const confirmAddElement = () => {
   if (schemaMeta) {
     newElement.guiClass = schemaMeta.guiClass
     newElement.testClass = schemaMeta.testClass
+  } else if (builtinClassMetadata[newElement.type]) {
+    newElement.guiClass = builtinClassMetadata[newElement.type].guiClass
+    newElement.testClass = builtinClassMetadata[newElement.type].testClass
   }
   
   // Initialize properties based on type
