@@ -11,6 +11,7 @@ import io.github.guojiaxing1995.easyJmeter.service.JFileService;
 import io.github.guojiaxing1995.easyJmeter.service.JmxParserService;
 import io.github.guojiaxing1995.easyJmeter.service.JmxStructureService;
 import io.github.guojiaxing1995.easyJmeter.vo.*;
+import io.github.talelin.autoconfigure.exception.NotFoundException;
 import io.github.talelin.core.annotation.GroupRequired;
 import io.github.talelin.core.annotation.LoginRequired;
 import io.github.talelin.core.annotation.PermissionMeta;
@@ -95,62 +96,66 @@ public class CaseController {
     @GetMapping("/{id}/jmx/parse")
     @ApiOperation(value = "解析JMX文件", notes = "Parse uploaded JMX file to JSON structure")
     @LoginRequired
-    public JmxTreeNodeDTO parseJmx(@PathVariable("id") @Positive(message = "{id.positive}") Integer id) throws Exception {
+    public JmxTreeNodeDTO parseJmx(@PathVariable("id") @Positive(message = "{id.positive}") Integer id) {
         log.info("Parsing JMX for case: {}", id);
-        
+        try {
+            return parseJmxInternal(id);
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Parsing JMX failed for case {}, fallback to empty structure: {}", id, e.getMessage());
+            return null;
+        }
+    }
+
+    private JmxTreeNodeDTO parseJmxInternal(Integer id) throws Exception {
         // Check if structure already exists
         JmxTreeNodeDTO existingStructure = jmxStructureService.getLatestStructure(id);
         if (existingStructure != null) {
             log.info("JMX structure already exists for case {}, returning cached version", id);
             return existingStructure;
         }
-        
+
         // Structure doesn't exist, try to parse from file
         CaseDO caseDO = caseService.getById(id);
         if (caseDO == null) {
-            throw new Exception("Case not found");
+            throw new NotFoundException(12201);
         }
-        
+
         if (caseDO.getJmx() == null || caseDO.getJmx().isEmpty()) {
             log.warn("Case {} has no JMX file uploaded, returning null to allow empty structure creation", id);
-            return null; // Return null - frontend will create empty structure
+            return null;
         }
-        
+
         // Get JMX file
         String jmxFileId = caseDO.getJmx().split(",")[0];
         JFileDO jFileDO = jFileService.searchById(Integer.parseInt(jmxFileId));
         if (jFileDO == null) {
             log.warn("JMX file record not found in database for case {}, file ID: {}, returning null", id, jmxFileId);
-            return null; // Return null - frontend will create empty structure
+            return null;
         }
-        
+
         File jmxFile = null;
         try {
             jmxFile = jFileService.getFileFromUrl(jFileDO);
             if (jmxFile == null || !jmxFile.exists()) {
                 log.warn("JMX file does not exist in storage for case {}, path: {}, returning null", id, jFileDO.getPath());
-                return null; // Return null - frontend will create empty structure
+                return null;
             }
-            
-            // Parse and save structure
+
             jmxStructureService.parseAndSaveJmxStructure(id, jmxFile);
-            
-            // Return latest structure
             return jmxStructureService.getLatestStructure(id);
         } catch (Exception e) {
             log.error("Failed to parse JMX file for case {}: {}", id, e.getMessage(), e);
-            // Check if it's a MinIO error or file access error
-            if (e.getMessage() != null && (e.getMessage().contains("Object does not exist") || 
+            if (e.getMessage() != null && (e.getMessage().contains("Object does not exist") ||
                                            e.getMessage().contains("NoSuchKey") ||
                                            e.getMessage().contains("does not exist"))) {
                 log.warn("JMX file not found in storage for case {}, returning null to allow empty structure creation", id);
-                return null; // Return null - frontend will create empty structure
+                return null;
             }
-            // For other errors, also return null and log the error
             log.warn("Unable to parse JMX file for case {}, returning null: {}", id, e.getMessage());
-            return null; // Return null - frontend will create empty structure
+            return null;
         } finally {
-            // Clean up temporary file if it was downloaded
             if (jmxFile != null && jmxFile.getAbsolutePath().contains("temp")) {
                 try {
                     jmxFile.delete();
@@ -195,7 +200,7 @@ public class CaseController {
         
         CaseDO caseDO = caseService.getById(id);
         if (caseDO == null) {
-            throw new Exception("Case not found");
+            throw new NotFoundException(12201);
         }
         
         // Generate JMX file to temp directory

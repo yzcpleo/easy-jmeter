@@ -19,41 +19,97 @@
                 <el-option v-for="item in projects" :key="item.value" :label="item.name" :value="item.id"/>
               </el-select>
             </el-form-item>
-            <el-form-item label="jmx文件" prop="jmx">
-              <el-table :data="jmxTable" border stripe show-overflow-tooltip 
-                        :header-row-style="{height: '20px'}"
-                        :row-style="{height: '20px'}">
-                <el-table-column :resizable="false" prop="name" label="文件名" />
-                <el-table-column :resizable="false" prop="size" label="文件大小" width="160" />
-                <el-table-column :resizable="false" label="操作" width="255">
-                  <template #default="scope">
-                    <el-button plain size="small" type="danger" @click="deleteFile(scope.row.id,'jmx')">删除</el-button>
-                    <el-button plain size="small" type="primary" @click="downloadFile(scope.row.url)" style="margin-left: 30px;">下载</el-button>
+            <el-form-item label="JMX文件" prop="jmx">
+              <div class="jmx-mode-container">
+                <el-radio-group v-model="jmxMode" class="jmx-radio-group">
+                  <el-radio-button label="upload">上传JMX</el-radio-button>
+                  <el-radio-button label="asset">关联资产</el-radio-button>
+                </el-radio-group>
+
+                <div v-if="jmxMode === 'asset'" class="asset-selector-inline">
+                  <el-select
+                    v-model="selectedAssetId"
+                    placeholder="请选择JMX资产"
+                    style="width: 100%;"
+                    :loading="assetLoading"
+                    @change="handleAssetSelect"
+                  >
+                    <el-option
+                      v-for="asset in assetOptions"
+                      :key="asset.id"
+                      :label="asset.name"
+                      :value="asset.id"
+                    />
+                  </el-select>
+                </div>
+              </div>
+
+              <div v-if="jmxMode === 'asset'" class="asset-alert">
+                <el-alert
+                  v-if="!assetOptions.length && jcase.project"
+                  title="当前项目暂未创建JMX资产，可前往「JMX资产管理」新增。"
+                  type="info"
+                  show-icon
+                />
+              </div>
+
+              <div v-show="jmxMode === 'upload'">
+                <el-table :data="jmxTable" border stripe show-overflow-tooltip 
+                          :header-row-style="{height: '20px'}"
+                          :row-style="{height: '20px'}"
+                          style="width: 100%"
+                          class="file-table">
+                  <el-table-column :resizable="false" prop="name" label="文件名" width="300" show-overflow-tooltip />
+                  <el-table-column :resizable="false" prop="size" label="文件大小" width="160" />
+                  <el-table-column :resizable="false" label="操作" width="255">
+                    <template #default="scope">
+                      <el-button plain size="small" type="danger" @click="deleteFile(scope.row.id,'jmx')">删除</el-button>
+                      <el-button plain size="small" type="primary" @click="downloadFile(scope.row.url)" style="margin-left: 30px;">下载</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-upload
+                  v-show="jmxMode === 'upload'"
+                  :action="actionUrl"
+                  :headers="myHeaders"
+                  :show-file-list="false"
+                  :on-error="uploadFileError"
+                  :on-success="(file,fileList)=>{return uploadFileSuccess(file,fileList,'jmx')}"
+                  :on-change="(file,fileList)=>{return uploadFileChange(file,fileList,'jmx')}"
+                >
+                  <template #default>
+                    <div class="upload-btn">
+                      <el-button plain type="primary" v-loading="uploadLoading.jmx">
+                        上传<el-icon class="el-icon--right"><Upload /></el-icon>
+                      </el-button>
+                    </div>
                   </template>
-                </el-table-column>
-              </el-table>
-              <el-upload
-                :action="actionUrl"
-                :headers="myHeaders"
-                :show-file-list="false"
-                :on-error="uploadFileError"
-                :on-success="(file,fileList)=>{return uploadFileSuccess(file,fileList,'jmx')}"
-                :on-change="(file,fileList)=>{return uploadFileChange(file,fileList,'jmx')}"
-              >
-                <template #default>
-                  <div class="upload-btn">
-                    <el-button plain type="primary" v-loading="uploadLoading.jmx">
-                      上传<el-icon class="el-icon--right"><Upload /></el-icon>
-                    </el-button>
-                  </div>
-                </template>
-              </el-upload>
+                </el-upload>
+              </div>
+
+              <div v-if="jmxMode === 'asset'">
+                <el-table :data="jmxTable" border stripe show-overflow-tooltip 
+                          :header-row-style="{height: '20px'}"
+                          :row-style="{height: '20px'}"
+                          style="width: 100%"
+                          class="file-table">
+                  <el-table-column :resizable="false" prop="name" label="文件名" width="300" show-overflow-tooltip />
+                  <el-table-column :resizable="false" prop="size" label="文件大小" width="160" />
+                  <el-table-column :resizable="false" label="操作" width="180">
+                    <template #default="scope">
+                      <el-button plain size="small" type="primary" @click="downloadFile(scope.row.url)">下载</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
             </el-form-item>
             <el-form-item label="csv文件" prop="csv">
               <el-table :data="csvTable" border stripe show-overflow-tooltip 
                         :header-row-style="{height: '20px'}"
-                        :row-style="{height: '20px'}">
-                <el-table-column :resizable="false" prop="name" label="文件名" />
+                        :row-style="{height: '20px'}"
+                        style="width: 100%"
+                        class="file-table">
+                <el-table-column :resizable="false" prop="name" label="文件名" width="300" show-overflow-tooltip />
                 <el-table-column :resizable="false" prop="size" label="文件大小" width="160" />
                 <el-table-column :resizable="false" label="操作" width="255">
                   <template #default="scope">
@@ -83,8 +139,10 @@
             <el-form-item label="jar文件" prop="jar">
               <el-table :data="jarTable" border stripe show-overflow-tooltip 
                         :header-row-style="{height: '20px'}"
-                        :row-style="{height: '20px'}">
-                <el-table-column :resizable="false" prop="name" label="文件名" />
+                        :row-style="{height: '20px'}"
+                        style="width: 100%"
+                        class="file-table">
+                <el-table-column :resizable="false" prop="name" label="文件名" width="300" show-overflow-tooltip />
                 <el-table-column :resizable="false" prop="size" label="文件大小" width="160" />
                 <el-table-column :resizable="false" label="操作" width="255">
                   <template #default="scope">
@@ -125,10 +183,11 @@
 </template>
   
   <script>
-  import { reactive, ref, onMounted } from 'vue'
+  import { reactive, ref, onMounted, watch } from 'vue'
   import { ElMessage } from 'element-plus'
   import { get,put,post } from '@/lin/plugin/axios'
   import { Upload } from '@element-plus/icons-vue'
+  import jmxApi from '@/api/jmx'
   
   export default {
     components: {
@@ -154,6 +213,22 @@
       const csvTable = ref([])
       const jarTable = ref([])
       const uploadLoading = reactive({ jmx: false, csv:false, jar: false})
+      const jmxMode = ref('upload')
+      const selectedAssetId = ref(null)
+      const assetOptions = ref([])
+      const assetLoading = ref(false)
+
+      const normalizeAsset = asset => {
+        if (!asset) return {}
+        return {
+          ...asset,
+          projectId: asset.projectId ?? asset.project_id ?? null,
+          jmxFileId: asset.jmxFileId ?? asset.jmx_file_id ?? null,
+          creationMode: asset.creationMode ?? asset.creation_mode ?? 'UPLOAD',
+          latestStructureVersion: asset.latestStructureVersion ?? asset.latest_structure_version ?? 0,
+          jmxFile: asset.jmxFile ?? asset.jmx_file ?? null,
+        }
+      }
   
       const listAssign = (a, b) => Object.keys(a).forEach(key => {
         a[key] = b[key] || a[key]
@@ -167,6 +242,24 @@
       onMounted(() => {
         if (props.editCaseId) {
           getjcase()
+        }
+      })
+
+      watch(() => jcase.project, (val) => {
+        if (jmxMode.value === 'asset' && val) {
+          fetchAssetOptions(val)
+        } else if (!val) {
+          assetOptions.value = []
+        }
+      })
+
+      watch(jmxMode, (val) => {
+        if (val === 'asset') {
+          if (jcase.project) {
+            fetchAssetOptions(jcase.project)
+          }
+        } else {
+          selectedAssetId.value = null
         }
       })
 
@@ -239,7 +332,9 @@
 
 
       const setFileStr = () => {
-        jcase.jmx = jmxTable.value.map(element => element.id).join(',')
+        if (jmxMode.value === 'upload') {
+          jcase.jmx = jmxTable.value.map(element => element.id).join(',')
+        }
         jcase.csv = csvTable.value.map(element => element.id).join(',')
         jcase.jar = jarTable.value.map(element => element.id).join(',')
       }
@@ -292,6 +387,50 @@
       const back = () => {
         context.emit('editClose')
       }
+
+      const fetchAssetOptions = async project => {
+        if (!project) {
+          assetOptions.value = []
+          return
+        }
+        assetLoading.value = true
+        try {
+          const res = await jmxApi.listAssets({ projectId: project })
+          assetOptions.value = (res || []).map(normalizeAsset)
+        } catch (error) {
+          assetOptions.value = []
+        } finally {
+          assetLoading.value = false
+        }
+      }
+
+      const handleAssetSelect = async assetId => {
+        if (!assetId) {
+          jcase.jmx = ''
+          jmxTable.value = []
+          return
+        }
+        try {
+          assetLoading.value = true
+          let detail = normalizeAsset(await jmxApi.getAsset(assetId))
+          if (!detail.jmxFileId) {
+            await jmxApi.generateAssetJmx(assetId)
+            detail = normalizeAsset(await jmxApi.getAsset(assetId))
+          }
+          if (!detail.jmxFileId) {
+            ElMessage.warning('该资产尚未生成JMX文件，请先在资产管理中构建并生成')
+            return
+          }
+          jcase.jmx = String(detail.jmxFileId)
+          if (detail.jmxFile) {
+            jmxTable.value = [detail.jmxFile]
+          }
+        } catch (error) {
+          ElMessage.error('加载资产失败')
+        } finally {
+          assetLoading.value = false
+        }
+      }
   
       return {
         back,
@@ -315,6 +454,11 @@
         loading,
         cutFile,
         downloadFile,
+        jmxMode,
+        selectedAssetId,
+        assetOptions,
+        assetLoading,
+        handleAssetSelect,
       }
     },
   }
@@ -375,8 +519,65 @@
       height: 100%;
     }
 
+    // 修复表格宽度异常问题
+    ::v-deep .file-table {
+      table-layout: fixed !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      
+      .el-table__header-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
+      .el-table__body-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
+      .el-table__empty-block {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
+      .el-table__empty-text {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      
+      table {
+        width: 100% !important;
+        table-layout: fixed !important;
+      }
+      
+      colgroup col {
+        width: auto !important;
+      }
+    }
+
     .upload-btn {
       margin-top: 6px;
+    }
+
+    .jmx-mode-container {
+      display: flex;
+      align-items: center;
+      gap: 2px; // 减小间距
+      margin-bottom: 5px;
+    }
+
+    .jmx-radio-group {
+      flex-shrink: 0;
+    }
+
+    .asset-selector-inline {
+      flex: 1;
+      min-width: 300px; // 设置最小宽度，确保输入框不会太小
+      max-width: 500px; // 设置最大宽度，避免过宽
+    }
+
+    .asset-alert {
+      margin-top: 12px;
     }
 
     .el-switch {

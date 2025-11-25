@@ -18,9 +18,14 @@ public class JmxStructureDO extends BaseModel implements Serializable {
     private static final long serialVersionUID = 1L;
     
     /**
-     * Associated case ID
+     * Associated case ID (nullable when owned by asset)
      */
     private Integer caseId;
+
+    /**
+     * Associated asset ID (nullable when owned by case)
+     */
+    private Integer assetId;
     
     /**
      * JMX structure in JSON format (stored as TEXT/LONGTEXT)

@@ -72,5 +72,17 @@ public interface JmxStructureService {
      * @return List of versions
      */
     List<Integer> getAllVersions(Integer caseId);
+
+    // -------- asset scoped operations --------
+
+    JmxStructureDO saveAssetStructure(Integer assetId, JmxTreeNodeDTO structure);
+
+    JmxTreeNodeDTO getLatestStructureForAsset(Integer assetId);
+
+    JmxTreeNodeDTO getAssetStructureByVersion(Integer assetId, Integer version);
+
+    List<Integer> getAllVersionsForAsset(Integer assetId);
+
+    void generateJmxFileForAsset(Integer assetId, File outputFile) throws Exception;
 }
 

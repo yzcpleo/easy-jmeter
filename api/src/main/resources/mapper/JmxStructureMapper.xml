@@ -5,6 +5,7 @@
     <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.JmxStructureDO">
         <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="case_id" jdbcType="INTEGER" property="caseId"/>
+        <result column="asset_id" jdbcType="INTEGER" property="assetId"/>
         <result column="structure_json" jdbcType="LONGVARCHAR" property="structureJson"/>
         <result column="version" jdbcType="INTEGER" property="version"/>
         <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
@@ -34,6 +35,32 @@
         SELECT *
         FROM jmx_structure
         WHERE case_id = #{caseId}
+          AND delete_time IS NULL
+        ORDER BY version DESC
+    </select>
+
+    <select id="findLatestByAssetId" resultMap="BaseResultMap">
+        SELECT *
+        FROM jmx_structure
+        WHERE asset_id = #{assetId}
+          AND delete_time IS NULL
+        ORDER BY version DESC
+        LIMIT 1
+    </select>
+
+    <select id="findByAssetIdAndVersion" resultMap="BaseResultMap">
+        SELECT *
+        FROM jmx_structure
+        WHERE asset_id = #{assetId}
+          AND version = #{version}
+          AND delete_time IS NULL
+        LIMIT 1
+    </select>
+
+    <select id="findAllVersionsByAssetId" resultMap="BaseResultMap">
+        SELECT *
+        FROM jmx_structure
+        WHERE asset_id = #{assetId}
           AND delete_time IS NULL
         ORDER BY version DESC
     </select>

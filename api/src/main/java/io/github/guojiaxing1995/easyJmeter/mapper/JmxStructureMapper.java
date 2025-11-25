@@ -37,5 +37,11 @@ public interface JmxStructureMapper extends BaseMapper<JmxStructureDO> {
      * @return List of structures ordered by version desc
      */
     List<JmxStructureDO> findAllVersionsByCaseId(@Param("caseId") Integer caseId);
+
+    JmxStructureDO findLatestByAssetId(@Param("assetId") Integer assetId);
+
+    JmxStructureDO findByAssetIdAndVersion(@Param("assetId") Integer assetId, @Param("version") Integer version);
+
+    List<JmxStructureDO> findAllVersionsByAssetId(@Param("assetId") Integer assetId);
 }
 

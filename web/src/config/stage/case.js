@@ -29,6 +29,17 @@ const caseRouter = {
         permission: ['用例管理'],
         keepAlive: false,
       },
+      {
+        route: '/case/jmx-assets',
+        name: 'jmx-asset-list',
+        title: 'JMX资产管理',
+        type: 'view',
+        icon: 'iconfont icon-caseStore',
+        filePath: 'view/case/jmx-asset-list.vue',
+        inNav: true,
+        permission: ['用例管理'],
+        keepAlive: false,
+      },
     ],
   }
   

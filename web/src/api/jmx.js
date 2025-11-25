@@ -1,5 +1,25 @@
 import _axios, { post, get, put } from '@/lin/plugin/axios'
 
+const buildAssetPayload = data => {
+  if (!data) return {}
+  const payload = {}
+  if (data.name !== undefined) payload.name = data.name
+  if (data.projectId !== undefined) {
+    payload.projectId = data.projectId
+    payload.project_id = data.projectId
+  }
+  if (data.description !== undefined) payload.description = data.description
+  if (data.jmxFileId !== undefined) {
+    payload.jmxFileId = data.jmxFileId
+    payload.jmx_file_id = data.jmxFileId
+  }
+  if (data.creationMode !== undefined) {
+    payload.creationMode = data.creationMode
+    payload.creation_mode = data.creationMode
+  }
+  return payload
+}
+
 class Jmx {
   // ==================== JMX Structure Management ====================
   
@@ -148,6 +168,97 @@ class Jmx {
     return _axios({
       method: 'get',
       url: '/v1/jmx/builder/templates',
+    })
+  }
+
+  // ==================== JMX Asset Management ====================
+
+  async listAssets(params = {}) {
+    return _axios({
+      method: 'get',
+      url: '/v1/jmx',
+      params,
+    })
+  }
+
+  async getAsset(id) {
+    return _axios({
+      method: 'get',
+      url: `/v1/jmx/${id}`,
+    })
+  }
+
+  async createAsset(data) {
+    return _axios({
+      method: 'post',
+      url: '/v1/jmx',
+      data: JSON.stringify(buildAssetPayload(data)),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+
+  async updateAsset(id, data) {
+    return _axios({
+      method: 'put',
+      url: `/v1/jmx/${id}`,
+      data: JSON.stringify(buildAssetPayload(data)),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+
+  async deleteAsset(id) {
+    return _axios({
+      method: 'delete',
+      url: `/v1/jmx/${id}`,
+      params: { showBackend: true },
+    })
+  }
+
+  async copyAsset(id, data) {
+    return _axios({
+      method: 'post',
+      url: `/v1/jmx/${id}/copy`,
+      data: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+
+  async getAssetStructure(id) {
+    return _axios({
+      method: 'get',
+      url: `/v1/jmx/${id}/structure`,
+    })
+  }
+
+  async saveAssetStructure(id, structure) {
+    return _axios({
+      method: 'post',
+      url: `/v1/jmx/${id}/structure`,
+      data: JSON.stringify({
+        assetId: id,
+        asset_id: id,
+        structure,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+  }
+
+  async generateAssetJmx(id) {
+    return _axios({
+      method: 'post',
+      url: `/v1/jmx/${id}/generate`,
+      data: {},
+      headers: {
+        'Content-Type': 'application/json',
+      },
     })
   }
 }

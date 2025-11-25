@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.JmxAssetMapper">
+
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.JmxAssetDO">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="project_id" jdbcType="INTEGER" property="projectId"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="jmx_file_id" jdbcType="INTEGER" property="jmxFileId"/>
+        <result column="creator" jdbcType="INTEGER" property="creator"/>
+        <result column="creation_mode" jdbcType="VARCHAR" property="creationMode"/>
+        <result column="latest_structure_version" jdbcType="INTEGER" property="latestStructureVersion"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+    </resultMap>
+
+    <update id="updateDeleteTime">
+        UPDATE jmx_asset
+        SET delete_time = NOW()
+        WHERE id = #{id}
+          AND delete_time IS NULL
+    </update>
+
+</mapper>
+
+

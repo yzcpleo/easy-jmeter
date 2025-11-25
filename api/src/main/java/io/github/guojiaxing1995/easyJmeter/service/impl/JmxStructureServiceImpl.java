@@ -1,7 +1,6 @@
 package io.github.guojiaxing1995.easyJmeter.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import io.github.guojiaxing1995.easyJmeter.dto.jmx.JmxTreeNodeDTO;
 import io.github.guojiaxing1995.easyJmeter.mapper.JmxStructureMapper;
 import io.github.guojiaxing1995.easyJmeter.model.JmxStructureDO;
@@ -50,14 +49,8 @@ public class JmxStructureServiceImpl implements JmxStructureService {
         JmxStructureDO latest = jmxStructureMapper.findLatestByCaseId(caseId);
         int newVersion = latest != null ? latest.getVersion() + 1 : 1;
         
-        // Create new structure record
-        JmxStructureDO structureDO = new JmxStructureDO();
-        structureDO.setCaseId(caseId);
-        structureDO.setStructureJson(JSON.toJSONString(structure));
-        structureDO.setVersion(newVersion);
-        
+        JmxStructureDO structureDO = buildStructureRecord(caseId, null, structure, newVersion);
         jmxStructureMapper.insert(structureDO);
-        
         log.info("JMX structure saved with version: {}", newVersion);
         return structureDO;
     }
@@ -124,6 +117,58 @@ public class JmxStructureServiceImpl implements JmxStructureService {
         return structures.stream()
                 .map(JmxStructureDO::getVersion)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public JmxStructureDO saveAssetStructure(Integer assetId, JmxTreeNodeDTO structure) {
+        log.info("Saving JMX structure for asset: {}", assetId);
+        JmxStructureDO latest = jmxStructureMapper.findLatestByAssetId(assetId);
+        int newVersion = latest != null ? latest.getVersion() + 1 : 1;
+        JmxStructureDO structureDO = buildStructureRecord(null, assetId, structure, newVersion);
+        jmxStructureMapper.insert(structureDO);
+        return structureDO;
+    }
+
+    @Override
+    public JmxTreeNodeDTO getLatestStructureForAsset(Integer assetId) {
+        JmxStructureDO structureDO = jmxStructureMapper.findLatestByAssetId(assetId);
+        if (structureDO == null) {
+            return null;
+        }
+        return JSON.parseObject(structureDO.getStructureJson(), JmxTreeNodeDTO.class);
+    }
+
+    @Override
+    public JmxTreeNodeDTO getAssetStructureByVersion(Integer assetId, Integer version) {
+        JmxStructureDO structureDO = jmxStructureMapper.findByAssetIdAndVersion(assetId, version);
+        if (structureDO == null) {
+            return null;
+        }
+        return JSON.parseObject(structureDO.getStructureJson(), JmxTreeNodeDTO.class);
+    }
+
+    @Override
+    public List<Integer> getAllVersionsForAsset(Integer assetId) {
+        List<JmxStructureDO> structures = jmxStructureMapper.findAllVersionsByAssetId(assetId);
+        return structures.stream().map(JmxStructureDO::getVersion).collect(Collectors.toList());
+    }
+
+    @Override
+    public void generateJmxFileForAsset(Integer assetId, File outputFile) throws Exception {
+        JmxTreeNodeDTO structure = getLatestStructureForAsset(assetId);
+        if (structure == null) {
+            throw new Exception("No JMX structure found for asset: " + assetId);
+        }
+        jmxParserService.jsonToJmx(structure, outputFile);
+    }
+
+    private JmxStructureDO buildStructureRecord(Integer caseId, Integer assetId, JmxTreeNodeDTO structure, int version) {
+        JmxStructureDO structureDO = new JmxStructureDO();
+        structureDO.setCaseId(caseId);
+        structureDO.setAssetId(assetId);
+        structureDO.setStructureJson(JSON.toJSONString(structure));
+        structureDO.setVersion(version);
+        return structureDO;
     }
 }
 

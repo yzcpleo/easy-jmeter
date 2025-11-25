@@ -3,7 +3,8 @@
     <div class="header">
       <div class="title-section">
         <h2>JMX Builder</h2>
-        <el-tag v-if="caseId">Editing Case #{{ caseId }}</el-tag>
+        <el-tag v-if="caseId">Case #{{ caseId }}</el-tag>
+        <el-tag v-else-if="assetId" type="success">Asset #{{ assetId }}</el-tag>
       </div>
       
       <div class="action-section">
@@ -49,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Check, Upload, Back } from '@element-plus/icons-vue'
@@ -60,6 +61,7 @@ const route = useRoute()
 const router = useRouter()
 
 const caseId = ref(null)
+const assetId = ref(null)
 const jmxStructure = ref(null)
 const editorRef = ref(null)
 const loading = ref(false)
@@ -67,19 +69,19 @@ const saving = ref(false)
 const validating = ref(false)
 const showTemplateDialog = ref(false)
 const templateList = ref([])
+const isAssetMode = computed(() => !!assetId.value && !caseId.value)
 
 onMounted(async () => {
-  // Get case ID from route params or query and convert to integer
   const id = route.params.id || route.query.caseId
   caseId.value = id ? parseInt(id) : null
-  
-  console.log('JMX Builder mounted with caseId:', caseId.value)
-  
+  const assetQuery = route.query.assetId
+  assetId.value = assetQuery ? parseInt(assetQuery, 10) : null
+
   if (caseId.value) {
-    // Load existing structure
-    await loadExistingStructure()
+    await loadCaseStructure()
+  } else if (assetId.value) {
+    await loadAssetStructure()
   } else {
-    // Create new empty test plan
     await createNew()
   }
 })
@@ -99,8 +101,8 @@ const createNew = async () => {
   }
 }
 
-// Load existing structure
-const loadExistingStructure = async () => {
+// Load case structure
+const loadCaseStructure = async () => {
   try {
     loading.value = true
     const res = await jmxApi.getJmxTree(caseId.value)
@@ -155,6 +157,25 @@ const loadExistingStructure = async () => {
   }
 }
 
+// Load asset structure
+const loadAssetStructure = async () => {
+  try {
+    loading.value = true
+    const res = await jmxApi.getAssetStructure(assetId.value)
+    if (res) {
+      jmxStructure.value = res
+      ElMessage.success('资产 JMX 结构已加载')
+    } else {
+      await createNew()
+    }
+  } catch (error) {
+    console.error('Failed to load asset structure:', error)
+    await createNew()
+  } finally {
+    loading.value = false
+  }
+}
+
 // Load template
 const loadTemplate = async () => {
   try {
@@ -196,16 +217,16 @@ const validateStructure = async () => {
     ElMessage.warning('没有可验证的结构')
     return
   }
-  
-  if (!caseId.value) {
-    ElMessage.warning('请先创建或选择一个用例')
+
+  const targetId = caseId.value || assetId.value
+  if (!targetId) {
+    ElMessage.warning('请先关联用例或资产')
     return
   }
-  
+
   try {
     validating.value = true
-    console.log('Validating structure for caseId:', caseId.value)
-    const res = await jmxApi.validateStructure(caseId.value, jmxStructure.value)
+    const res = await jmxApi.validateStructure(caseId.value || 0, jmxStructure.value)
     
     if (res.valid) {
       ElMessage.success('结构验证通过')
@@ -227,31 +248,34 @@ const saveStructure = async () => {
     ElMessage.warning('没有可保存的结构')
     return
   }
-  
-  if (!caseId.value) {
-    ElMessage.warning('请先创建或选择一个用例')
+
+  const targetId = caseId.value || assetId.value
+  if (!targetId) {
+    ElMessage.warning('请先关联用例或资产')
     return
   }
-  
+
   try {
     saving.value = true
-    
-    console.log('Saving structure for caseId:', caseId.value)
-    console.log('Structure:', jmxStructure.value)
-    
-    // Validate first
-    const validation = await jmxApi.validateStructure(caseId.value, jmxStructure.value)
-    if (!validation.valid) {
-      ElMessage.error('结构验证失败，请修复错误后再保存')
-      return
+
+    if (caseId.value) {
+      const validation = await jmxApi.validateStructure(caseId.value, jmxStructure.value)
+      if (!validation.valid) {
+        ElMessage.error('结构验证失败，请修复错误后再保存')
+        return
+      }
+      await jmxApi.saveJmxStructure(caseId.value, jmxStructure.value)
+      await jmxApi.generateJmx(caseId.value)
+    } else if (assetId.value) {
+      const validation = await jmxApi.validateStructure(0, jmxStructure.value)
+      if (!validation.valid) {
+        ElMessage.error('结构验证失败，请修复错误后再保存')
+        return
+      }
+      await jmxApi.saveAssetStructure(assetId.value, jmxStructure.value)
+      await jmxApi.generateAssetJmx(assetId.value)
     }
-    
-    // Save structure
-    await jmxApi.saveJmxStructure(caseId.value, jmxStructure.value)
-    
-    // Generate JMX file
-    await jmxApi.generateJmx(caseId.value)
-    
+
     ElMessage.success('JMX 结构保存成功')
   } catch (error) {
     console.error('Save error:', error)

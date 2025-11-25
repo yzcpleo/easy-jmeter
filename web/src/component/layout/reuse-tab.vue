@@ -18,9 +18,18 @@
           :to="item.path"
           @contextmenu.prevent="onTags(index, $event)"
         >
-          <i v-if="!filterIcon(stageList[item.stageId].icon)" :class="stageList[item.stageId].icon"></i>
-          <img v-else :src="stageList[item.stageId].icon" style="width:16px;" />
-          <span style="padding: 0 5px;">{{ stageList[item.stageId].title }}</span>
+          <template v-if="getStageMeta(item.stageId).icon">
+            <i
+              v-if="!filterIcon(getStageMeta(item.stageId).icon)"
+              :class="getStageMeta(item.stageId).icon"
+            ></i>
+            <img
+              v-else
+              :src="getStageMeta(item.stageId).icon"
+              style="width:16px;"
+            />
+          </template>
+          <span style="padding: 0 5px;">{{ getStageMeta(item.stageId).title }}</span>
           <span class="el-icon-close" @click.prevent.stop="close(index)" />
         </router-link>
       </swiper-slide>
@@ -153,6 +162,16 @@ export default {
         return false
       }
       return icon.indexOf('/') !== -1
+    },
+    getStageMeta(stageId) {
+      const meta = this.stageList[stageId]
+      if (meta) {
+        return meta
+      }
+      return {
+        icon: '',
+        title: stageId || '未知页面',
+      }
     },
     closeAll() {
       this.histories = []
