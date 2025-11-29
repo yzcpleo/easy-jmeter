@@ -43,6 +43,64 @@ const props = defineProps({
 
 const emit = defineEmits(['update'])
 
+// Parse arguments string to array format
+// Format: name\nvalue\n=\n (repeated for each argument)
+const parseArgumentsString = (argsStr) => {
+  if (!argsStr || typeof argsStr !== 'string') {
+    return []
+  }
+  
+  const lines = argsStr.split('\n')
+  const args = []
+  let currentName = null
+  let currentValue = []
+  let expectingValue = false
+  
+  for (const line of lines) {
+    const trimmed = line.trim()
+    
+    // Skip empty lines
+    if (!trimmed) {
+      continue
+    }
+    
+    // If we see "=", it's a separator - save current argument and reset
+    if (trimmed === '=') {
+      if (currentName) {
+        args.push({
+          name: currentName,
+          value: currentValue.join('\n').trim(),
+          description: ''
+        })
+      }
+      currentName = null
+      currentValue = []
+      expectingValue = false
+      continue
+    }
+    
+    // If we don't have a name yet, this is the name
+    if (!currentName) {
+      currentName = trimmed
+      expectingValue = true
+    } else if (expectingValue) {
+      // This is the value (could be multi-line, especially for JSON)
+      currentValue.push(trimmed)
+    }
+  }
+  
+  // Handle last argument if there's no trailing "="
+  if (currentName) {
+    args.push({
+      name: currentName,
+      value: currentValue.join('\n').trim(),
+      description: ''
+    })
+  }
+  
+  return args
+}
+
 // Local properties
 const localProps = ref({
   classname: '',
@@ -50,17 +108,26 @@ const localProps = ref({
   ...props.node.properties
 })
 
-// Ensure arrays exist
+// Ensure arrays exist and convert string format if needed
 if (!localProps.value.arguments) {
   localProps.value.arguments = []
+} else if (typeof localProps.value.arguments === 'string') {
+  // Convert string format to array
+  localProps.value.arguments = parseArgumentsString(localProps.value.arguments)
 }
 
 // Watch for external changes
 watch(() => props.node.properties, (newVal) => {
+  let args = newVal.arguments || []
+  // Convert string format to array if needed
+  if (typeof args === 'string') {
+    args = parseArgumentsString(args)
+  }
+  
   localProps.value = {
     ...localProps.value,
     ...newVal,
-    arguments: newVal.arguments || []
+    arguments: args
   }
 }, { deep: true })
 

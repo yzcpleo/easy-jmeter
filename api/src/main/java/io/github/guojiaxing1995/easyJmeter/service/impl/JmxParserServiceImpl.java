@@ -342,6 +342,19 @@ public class JmxParserServiceImpl implements JmxParserService {
         
         node.setChildren(children);
         
+        // Special handling for JavaSampler arguments
+        // If arguments is a string (from XML parsing), convert it to array format
+        if ("JavaSampler".equals(node.getType()) && properties.containsKey("arguments")) {
+            Object argumentsObj = properties.get("arguments");
+            if (argumentsObj instanceof String) {
+                String argumentsStr = (String) argumentsObj;
+                List<Map<String, String>> argsList = parseJavaSamplerArguments(argumentsStr);
+                if (!argsList.isEmpty()) {
+                    properties.put("arguments", argsList);
+                }
+            }
+        }
+        
         // Extract comments
         if (properties.containsKey("TestPlan.comments")) {
             node.setComments(properties.get("TestPlan.comments").toString());
@@ -352,6 +365,71 @@ public class JmxParserServiceImpl implements JmxParserService {
         }
         
         return node;
+    }
+    
+    /**
+     * Parse JavaSampler arguments string to list of argument maps
+     * Format: name\nvalue\n=\n (repeated for each argument)
+     * The format appears to be: whitespace, name, value, "=", whitespace (repeated)
+     */
+    private List<Map<String, String>> parseJavaSamplerArguments(String argumentsStr) {
+        List<Map<String, String>> argsList = new ArrayList<>();
+        if (argumentsStr == null || argumentsStr.trim().isEmpty()) {
+            return argsList;
+        }
+        
+        // Split by lines
+        String[] lines = argumentsStr.split("\n");
+        String currentName = null;
+        StringBuilder currentValue = new StringBuilder();
+        boolean expectingValue = false;
+        
+        for (String line : lines) {
+            String trimmed = line.trim();
+            
+            // Skip empty lines
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            
+            // If we see "=", it's a separator - save current argument and reset
+            if (trimmed.equals("=")) {
+                if (currentName != null && !currentName.isEmpty()) {
+                    Map<String, String> arg = new HashMap<>();
+                    arg.put("name", currentName);
+                    arg.put("value", currentValue.toString().trim());
+                    arg.put("description", "");
+                    argsList.add(arg);
+                }
+                currentName = null;
+                currentValue.setLength(0);
+                expectingValue = false;
+                continue;
+            }
+            
+            // If we don't have a name yet, this is the name
+            if (currentName == null) {
+                currentName = trimmed;
+                expectingValue = true;
+            } else if (expectingValue) {
+                // This is the value (could be multi-line, especially for JSON)
+                if (currentValue.length() > 0) {
+                    currentValue.append("\n");
+                }
+                currentValue.append(trimmed);
+            }
+        }
+        
+        // Handle last argument if there's no trailing "="
+        if (currentName != null && !currentName.isEmpty()) {
+            Map<String, String> arg = new HashMap<>();
+            arg.put("name", currentName);
+            arg.put("value", currentValue.toString().trim());
+            arg.put("description", "");
+            argsList.add(arg);
+        }
+        
+        return argsList;
     }
     
     /**
@@ -667,9 +745,26 @@ public class JmxParserServiceImpl implements JmxParserService {
                 
                 Arguments javaArgs = new Arguments();
                 if (props.containsKey("arguments")) {
-                    List<Map<String, String>> args = (List<Map<String, String>>) props.get("arguments");
-                    for (Map<String, String> arg : args) {
-                        javaArgs.addArgument(arg.get("name"), arg.get("value"));
+                    Object argumentsObj = props.get("arguments");
+                    List<Map<String, String>> args = null;
+                    
+                    // Handle both string and list formats
+                    if (argumentsObj instanceof String) {
+                        // Convert string format to list
+                        args = parseJavaSamplerArguments((String) argumentsObj);
+                    } else if (argumentsObj instanceof List) {
+                        // Already in list format
+                        args = (List<Map<String, String>>) argumentsObj;
+                    }
+                    
+                    if (args != null) {
+                        for (Map<String, String> arg : args) {
+                            String name = arg.get("name");
+                            String value = arg.get("value");
+                            if (name != null) {
+                                javaArgs.addArgument(name, value != null ? value : "");
+                            }
+                        }
                     }
                 }
                 javaSampler.setArguments(javaArgs);
