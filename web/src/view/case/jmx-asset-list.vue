@@ -225,13 +225,17 @@ const openCreateDialog = () => {
 const openEditDialog = async row => {
   try {
     const detail = await jmxApi.getAsset(row.id)
-    assetForm.id = detail.id
-    assetForm.name = detail.name
-    assetForm.projectId = detail.projectId
-    assetForm.description = detail.description
+    // 使用 normalizeAsset 确保字段格式统一（处理 projectId/project_id 等）
+    const normalized = normalizeAsset(detail)
+    assetForm.id = normalized.id
+    assetForm.name = normalized.name || ''
+    // 确保 projectId 是数字类型，与 el-select 的 value 类型匹配
+    assetForm.projectId = normalized.projectId ? Number(normalized.projectId) : null
+    assetForm.description = normalized.description || ''
     isEdit.value = true
     formDialogVisible.value = true
   } catch (error) {
+    console.error('获取资产详情失败:', error)
     ElMessage.error('获取资产详情失败')
   }
 }
@@ -258,10 +262,26 @@ const submitAssetForm = async () => {
     formDialogVisible.value = false
     await fetchAssets()
   } catch (error) {
-    if (error?.response?.data?.message) {
-      ElMessage.error(error.response.data.message)
-    } else if (error?.message !== 'cancel') {
-      ElMessage.error('保存失败')
+    console.error('Asset save error:', error)
+    // 处理错误响应
+    if (error?.response?.data) {
+      const errorData = error.response.data
+      // 检查是否是验证错误
+      if (errorData.code && errorData.message) {
+        // 如果是对象类型的 message（验证错误），提取所有错误信息
+        if (typeof errorData.message === 'object') {
+          const errorMessages = Object.values(errorData.message).flat()
+          ElMessage.error(errorMessages.join('; ') || '保存失败，请检查输入信息')
+        } else {
+          ElMessage.error(errorData.message || '保存失败')
+        }
+      } else {
+        ElMessage.error('保存失败，请检查输入信息')
+      }
+    } else if (error?.message && error.message !== 'cancel') {
+      ElMessage.error(error.message || '保存失败')
+    } else {
+      ElMessage.error('保存失败，请重试')
     }
   } finally {
     formSubmitting.value = false

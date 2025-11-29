@@ -196,6 +196,8 @@ class Jmx {
       headers: {
         'Content-Type': 'application/json',
       },
+      showBackend: true,
+      handleError: true,
     })
   }
 
@@ -207,6 +209,8 @@ class Jmx {
       headers: {
         'Content-Type': 'application/json',
       },
+      showBackend: true,
+      handleError: true,
     })
   }
 
@@ -248,6 +252,7 @@ class Jmx {
       headers: {
         'Content-Type': 'application/json',
       },
+      showBackend: true,
     })
   }
 
@@ -259,6 +264,7 @@ class Jmx {
       headers: {
         'Content-Type': 'application/json',
       },
+      showBackend: true,
     })
   }
 }

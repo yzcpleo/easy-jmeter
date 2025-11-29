@@ -1,4 +1,5 @@
 import { get, post, put, _delete } from '@/lin/plugin/axios'
+import _axios from '@/lin/plugin/axios'
 
 // 获取链路列表
 export function getChains(query) {
@@ -76,4 +77,66 @@ export function getChainStats(chainId, startTime, endTime) {
 // 获取延时数据列表
 export function getLatencyData(query) {
   return get('v1/chain/collection/data', query)
+}
+
+// ========== 性能指标路径相关API ==========
+
+// 创建性能指标路径配置
+export function createMetricPath(data) {
+  console.log('创建路径 - 发送数据:', data)
+  const config = {
+    method: 'post',
+    url: '/v1/chain/metric-path',
+    data: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  }
+  console.log('请求配置:', config)
+  return _axios(config)
+}
+
+// 更新性能指标路径配置
+export function updateMetricPath(id, data) {
+  console.log('更新路径 - 发送数据:', data)
+  const config = {
+    method: 'put',
+    url: `/v1/chain/metric-path/${id}`,
+    data: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  }
+  console.log('请求配置:', config)
+  return _axios(config)
+}
+
+// 删除性能指标路径配置
+export function deleteMetricPath(id) {
+  return _delete(`v1/chain/metric-path/${id}`)
+}
+
+// 获取性能指标路径配置详情
+export function getMetricPath(id) {
+  return get(`v1/chain/metric-path/${id}`)
+}
+
+// 根据链路ID获取所有性能指标路径
+export function getMetricPathsByChainId(chainId) {
+  return get(`v1/chain/metric-path/chain/${chainId}`)
+}
+
+// 根据链路ID和指标类型获取路径
+export function getMetricPathsByMetricType(chainId, metricType) {
+  return get(`v1/chain/metric-path/chain/${chainId}/metric-type/${metricType}`)
+}
+
+// 获取路径穿透时延统计数据
+export function getPathLatencyStats(pathId, startTime, endTime) {
+  return get(`v1/chain/metric-path/${pathId}/latency-stats`, { startTime, endTime })
+}
+
+// 批量获取路径穿透时延统计数据
+export function getPathsLatencyStats(chainId, startTime, endTime) {
+  return get(`v1/chain/metric-path/chain/${chainId}/latency-stats`, { startTime, endTime })
 }

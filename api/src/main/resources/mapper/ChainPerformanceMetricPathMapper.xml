@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="io.github.guojiaxing1995.easyJmeter.mapper.ChainPerformanceMetricPathMapper">
+    <resultMap id="BaseResultMap" type="io.github.guojiaxing1995.easyJmeter.model.ChainPerformanceMetricPathDO">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="chain_id" jdbcType="BIGINT" property="chainId"/>
+        <result column="metric_name" jdbcType="VARCHAR" property="metricName"/>
+        <result column="metric_type" jdbcType="VARCHAR" property="metricType"/>
+        <result column="start_node_id" jdbcType="BIGINT" property="startNodeId"/>
+        <result column="start_node_name" jdbcType="VARCHAR" property="startNodeName"/>
+        <result column="start_time_field" jdbcType="VARCHAR" property="startTimeField"/>
+        <result column="end_node_id" jdbcType="BIGINT" property="endNodeId"/>
+        <result column="end_node_name" jdbcType="VARCHAR" property="endNodeName"/>
+        <result column="end_time_field" jdbcType="VARCHAR" property="endTimeField"/>
+        <result column="description" jdbcType="VARCHAR" property="description"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+        <result column="updated_by" jdbcType="VARCHAR" property="updatedBy"/>
+        <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+        <result column="delete_time" jdbcType="TIMESTAMP" property="deleteTime"/>
+    </resultMap>
+
+    <select id="selectByChainId" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_performance_metric_path
+        WHERE chain_id = #{chainId}
+          AND delete_time IS NULL
+          AND status = 1
+        ORDER BY created_time DESC
+    </select>
+
+    <select id="selectByChainIdAndMetricType" resultMap="BaseResultMap">
+        SELECT *
+        FROM chain_performance_metric_path
+        WHERE chain_id = #{chainId}
+          AND metric_type = #{metricType}
+          AND delete_time IS NULL
+          AND status = 1
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 查询路径穿透时延统计数据 - 根据配置的时间字段灵活计算 -->
+    <select id="selectPathLatencyStats" resultType="io.github.guojiaxing1995.easyJmeter.mapper.ChainPerformanceMetricPathMapper$PathLatencyStats">
+        SELECT
+            COUNT(*) AS totalRequests,
+            SUM(CASE WHEN start_data.success = 1 AND end_data.success = 1 THEN 1 ELSE 0 END) AS successfulRequests,
+            SUM(CASE WHEN start_data.success = 0 OR end_data.success = 0 THEN 1 ELSE 0 END) AS failedRequests,
+            AVG(TIMESTAMPDIFF(MICROSECOND, 
+                CASE 
+                    WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                    ELSE start_data.request_start_time
+                END,
+                CASE 
+                    WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                    ELSE end_data.request_start_time
+                END
+            ) / 1000.0) AS avgLatency,
+            MAX(TIMESTAMPDIFF(MICROSECOND, 
+                CASE 
+                    WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                    ELSE start_data.request_start_time
+                END,
+                CASE 
+                    WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                    ELSE end_data.request_start_time
+                END
+            ) / 1000.0) AS maxLatency,
+            MIN(TIMESTAMPDIFF(MICROSECOND, 
+                CASE 
+                    WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                    ELSE start_data.request_start_time
+                END,
+                CASE 
+                    WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                    ELSE end_data.request_start_time
+                END
+            ) / 1000.0) AS minLatency,
+            (
+                SELECT TIMESTAMPDIFF(MICROSECOND, 
+                    CASE 
+                        WHEN path.start_time_field = 'REQUEST_END_TIME' THEN t1.start_time
+                        ELSE t1.start_time
+                    END,
+                    CASE 
+                        WHEN path.end_time_field = 'REQUEST_END_TIME' THEN t1.end_time
+                        ELSE t1.end_time
+                    END
+                ) / 1000.0 AS latency
+                FROM (
+                    SELECT 
+                        CASE 
+                            WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                            ELSE start_data.request_start_time
+                        END AS start_time,
+                        CASE 
+                            WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                            ELSE end_data.request_start_time
+                        END AS end_time,
+                        TIMESTAMPDIFF(MICROSECOND, 
+                            CASE 
+                                WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                                ELSE start_data.request_start_time
+                            END,
+                            CASE 
+                                WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                                ELSE end_data.request_start_time
+                            END
+                        ) / 1000.0 AS latency
+                    FROM chain_latency_data start_data
+                    INNER JOIN chain_latency_data end_data ON start_data.request_id = end_data.request_id
+                    INNER JOIN chain_performance_metric_path path ON path.id = #{pathId}
+                    WHERE start_data.node_id = path.start_node_id
+                      AND end_data.node_id = path.end_node_id
+                      AND (start_data.request_start_time BETWEEN #{startTime} AND #{endTime}
+                           OR start_data.request_end_time BETWEEN #{startTime} AND #{endTime}
+                           OR end_data.request_start_time BETWEEN #{startTime} AND #{endTime}
+                           OR end_data.request_end_time BETWEEN #{startTime} AND #{endTime}
+                           OR start_data.collection_time BETWEEN #{startTime} AND #{endTime}
+                           OR end_data.collection_time BETWEEN #{startTime} AND #{endTime})
+                    ORDER BY latency ASC
+                ) t1
+                WHERE (
+                    SELECT COUNT(*)
+                    FROM (
+                        SELECT 
+                            TIMESTAMPDIFF(MICROSECOND, 
+                                CASE 
+                                    WHEN p.start_time_field = 'REQUEST_END_TIME' THEN s.request_end_time
+                                    ELSE s.request_start_time
+                                END,
+                                CASE 
+                                    WHEN p.end_time_field = 'REQUEST_END_TIME' THEN e.request_end_time
+                                    ELSE e.request_start_time
+                                END
+                            ) / 1000.0 AS latency
+                        FROM chain_latency_data s
+                        INNER JOIN chain_latency_data e ON s.request_id = e.request_id
+                        INNER JOIN chain_performance_metric_path p ON p.id = #{pathId}
+                        WHERE s.node_id = p.start_node_id
+                          AND e.node_id = p.end_node_id
+                          AND (s.request_start_time BETWEEN #{startTime} AND #{endTime}
+                               OR s.request_end_time BETWEEN #{startTime} AND #{endTime}
+                               OR e.request_start_time BETWEEN #{startTime} AND #{endTime}
+                               OR e.request_end_time BETWEEN #{startTime} AND #{endTime}
+                               OR s.collection_time BETWEEN #{startTime} AND #{endTime}
+                               OR e.collection_time BETWEEN #{startTime} AND #{endTime})
+                    ) t2
+                    WHERE t2.latency &lt;= t1.latency
+                ) &gt;= CEIL(
+                    (SELECT COUNT(*)
+                     FROM chain_latency_data s
+                     INNER JOIN chain_latency_data e ON s.request_id = e.request_id
+                     INNER JOIN chain_performance_metric_path p ON p.id = #{pathId}
+                     WHERE s.node_id = p.start_node_id
+                       AND e.node_id = p.end_node_id
+                       AND (s.request_start_time BETWEEN #{startTime} AND #{endTime}
+                            OR s.request_end_time BETWEEN #{startTime} AND #{endTime}
+                            OR e.request_start_time BETWEEN #{startTime} AND #{endTime}
+                            OR e.request_end_time BETWEEN #{startTime} AND #{endTime}
+                            OR s.collection_time BETWEEN #{startTime} AND #{endTime}
+                            OR e.collection_time BETWEEN #{startTime} AND #{endTime})) * 0.95
+                )
+                LIMIT 1
+            ) AS p95Latency,
+            (
+                SELECT TIMESTAMPDIFF(MICROSECOND, 
+                    CASE 
+                        WHEN path.start_time_field = 'REQUEST_END_TIME' THEN t1.start_time
+                        ELSE t1.start_time
+                    END,
+                    CASE 
+                        WHEN path.end_time_field = 'REQUEST_END_TIME' THEN t1.end_time
+                        ELSE t1.end_time
+                    END
+                ) / 1000.0 AS latency
+                FROM (
+                    SELECT 
+                        CASE 
+                            WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                            ELSE start_data.request_start_time
+                        END AS start_time,
+                        CASE 
+                            WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                            ELSE end_data.request_start_time
+                        END AS end_time,
+                        TIMESTAMPDIFF(MICROSECOND, 
+                            CASE 
+                                WHEN path.start_time_field = 'REQUEST_END_TIME' THEN start_data.request_end_time
+                                ELSE start_data.request_start_time
+                            END,
+                            CASE 
+                                WHEN path.end_time_field = 'REQUEST_END_TIME' THEN end_data.request_end_time
+                                ELSE end_data.request_start_time
+                            END
+                        ) / 1000.0 AS latency
+                    FROM chain_latency_data start_data
+                    INNER JOIN chain_latency_data end_data ON start_data.request_id = end_data.request_id
+                    INNER JOIN chain_performance_metric_path path ON path.id = #{pathId}
+                    WHERE start_data.node_id = path.start_node_id
+                      AND end_data.node_id = path.end_node_id
+                      AND (start_data.request_start_time BETWEEN #{startTime} AND #{endTime}
+                           OR start_data.request_end_time BETWEEN #{startTime} AND #{endTime}
+                           OR end_data.request_start_time BETWEEN #{startTime} AND #{endTime}
+                           OR end_data.request_end_time BETWEEN #{startTime} AND #{endTime}
+                           OR start_data.collection_time BETWEEN #{startTime} AND #{endTime}
+                           OR end_data.collection_time BETWEEN #{startTime} AND #{endTime})
+                    ORDER BY latency ASC
+                ) t1
+                WHERE (
+                    SELECT COUNT(*)
+                    FROM (
+                        SELECT 
+                            TIMESTAMPDIFF(MICROSECOND, 
+                                CASE 
+                                    WHEN p.start_time_field = 'REQUEST_END_TIME' THEN s.request_end_time
+                                    ELSE s.request_start_time
+                                END,
+                                CASE 
+                                    WHEN p.end_time_field = 'REQUEST_END_TIME' THEN e.request_end_time
+                                    ELSE e.request_start_time
+                                END
+                            ) / 1000.0 AS latency
+                        FROM chain_latency_data s
+                        INNER JOIN chain_latency_data e ON s.request_id = e.request_id
+                        INNER JOIN chain_performance_metric_path p ON p.id = #{pathId}
+                        WHERE s.node_id = p.start_node_id
+                          AND e.node_id = p.end_node_id
+                          AND (s.request_start_time BETWEEN #{startTime} AND #{endTime}
+                               OR s.request_end_time BETWEEN #{startTime} AND #{endTime}
+                               OR e.request_start_time BETWEEN #{startTime} AND #{endTime}
+                               OR e.request_end_time BETWEEN #{startTime} AND #{endTime}
+                               OR s.collection_time BETWEEN #{startTime} AND #{endTime}
+                               OR e.collection_time BETWEEN #{startTime} AND #{endTime})
+                    ) t2
+                    WHERE t2.latency &lt;= t1.latency
+                ) &gt;= CEIL(
+                    (SELECT COUNT(*)
+                     FROM chain_latency_data s
+                     INNER JOIN chain_latency_data e ON s.request_id = e.request_id
+                     INNER JOIN chain_performance_metric_path p ON p.id = #{pathId}
+                     WHERE s.node_id = p.start_node_id
+                       AND e.node_id = p.end_node_id
+                       AND (s.request_start_time BETWEEN #{startTime} AND #{endTime}
+                            OR s.request_end_time BETWEEN #{startTime} AND #{endTime}
+                            OR e.request_start_time BETWEEN #{startTime} AND #{endTime}
+                            OR e.request_end_time BETWEEN #{startTime} AND #{endTime}
+                            OR s.collection_time BETWEEN #{startTime} AND #{endTime}
+                            OR e.collection_time BETWEEN #{startTime} AND #{endTime})) * 0.99
+                )
+                LIMIT 1
+            ) AS p99Latency
+        FROM chain_latency_data start_data
+        INNER JOIN chain_latency_data end_data ON start_data.request_id = end_data.request_id
+        INNER JOIN chain_performance_metric_path path ON path.id = #{pathId}
+        WHERE start_data.node_id = path.start_node_id
+          AND end_data.node_id = path.end_node_id
+          AND (start_data.request_start_time BETWEEN #{startTime} AND #{endTime}
+               OR start_data.request_end_time BETWEEN #{startTime} AND #{endTime}
+               OR end_data.request_start_time BETWEEN #{startTime} AND #{endTime}
+               OR end_data.request_end_time BETWEEN #{startTime} AND #{endTime}
+               OR start_data.collection_time BETWEEN #{startTime} AND #{endTime}
+               OR end_data.collection_time BETWEEN #{startTime} AND #{endTime})
+    </select>
+</mapper>

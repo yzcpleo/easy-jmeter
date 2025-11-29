@@ -29,7 +29,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
 
     @Override
     public Map<String, Object> getTimes(String taskId) {
-        String query = String.format("select text from events where application='%s' tz('Asia/Shanghai')", taskId);
+        String query = String.format("select text from events where application='%s' ", taskId);
         QueryResult.Result result = influxDB.query(new Query(query)).getResults().get(0);
         if (result.getSeries()==null){
             return mapOf("startTime", "", "endTime", "", "start", "", "end", "");
@@ -45,35 +45,47 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
                 endTimes.add(value.get(0).toString());
             }
         }
+        ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
         DateTimeFormatter newFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        // 开始时间升序排列
+        // 开始时间升序排列 - InfluxDB 返回 UTC 时间，转换为 Asia/Shanghai
         List<OffsetDateTime> sortedStartTimes = startTimes.stream()
-                .map(timeString -> OffsetDateTime.parse(timeString, formatter))
+                .map(timeString -> {
+                    // 使用 ISO 格式解析，支持 Z 和偏移量格式
+                    OffsetDateTime utcTime = OffsetDateTime.parse(timeString.replace(" ", "T"));
+                    // 转换为 Asia/Shanghai 时区
+                    return utcTime.atZoneSameInstant(shanghaiZone).toOffsetDateTime();
+                })
                 .sorted()
                 .collect(Collectors.toList());
         String startTime = sortedStartTimes.get(0).format(formatter);
         // 结束时间降序排列
         List<OffsetDateTime> sortedEndTimes = endTimes.stream()
-                .map(timeString -> OffsetDateTime.parse(timeString, formatter))
+                .map(timeString -> {
+                    OffsetDateTime utcTime = OffsetDateTime.parse(timeString.replace(" ", "T"));
+                    return utcTime.atZoneSameInstant(shanghaiZone).toOffsetDateTime();
+                })
                 .sorted(Comparator.reverseOrder())
                 .collect(Collectors.toList());
         String endTime = "";
         if (!sortedEndTimes.isEmpty()){
             endTime = sortedEndTimes.get(0).format(formatter);
         } else {
-            ZonedDateTime zonedDateTime = LocalDateTime.now(ZoneId.systemDefault()).atZone(ZoneId.of("Asia/Shanghai"));
+            ZonedDateTime zonedDateTime = LocalDateTime.now(ZoneId.systemDefault()).atZone(shanghaiZone);
             endTime =  zonedDateTime.format(formatter);
         }
 
         List<OffsetDateTime> points = new ArrayList<>();
-        OffsetDateTime currentPoint = OffsetDateTime.parse(startTime);
-        while (currentPoint.isBefore(OffsetDateTime.parse(endTime))) {
+        OffsetDateTime currentPoint = OffsetDateTime.parse(startTime, formatter);
+        OffsetDateTime endPoint = OffsetDateTime.parse(endTime, formatter);
+        while (currentPoint.isBefore(endPoint)) {
             points.add(currentPoint);
             currentPoint = currentPoint.plusSeconds(5 - currentPoint.getSecond() % 5);
         }
-        points.add(OffsetDateTime.parse(endTime));
-        points.remove(0);
+        points.add(endPoint);
+        if (!points.isEmpty()) {
+            points.remove(0);
+        }
 
         String start = OffsetDateTime.parse(startTime, formatter).format(newFormatter);
         String end = OffsetDateTime.parse(endTime, formatter).format(newFormatter);
@@ -86,9 +98,9 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
         if (startTime.isEmpty() || endTime.isEmpty()){
             return mapOf("count", 0, "countError", 0);
         }
-        String errorCountQuery = String.format("SELECT count FROM jmeter WHERE statut='ko' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='all' group by transaction tz('Asia/Shanghai')",
+        String errorCountQuery = String.format("SELECT count FROM jmeter WHERE statut='ko' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='all' group by transaction ",
                 startTime, endTime, taskId);
-        String countQuery = String.format("SELECT count FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='all' group by transaction tz('Asia/Shanghai')",
+        String countQuery = String.format("SELECT count FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='all' group by transaction ",
                 startTime, endTime, taskId);
         QueryResult.Result errorCountResult = influxDB.query(new Query(errorCountQuery)).getResults().get(0);
         QueryResult.Result countResult = influxDB.query(new Query(countQuery)).getResults().get(0);
@@ -144,7 +156,8 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
         if (startTime.isEmpty() || endTime.isEmpty()){
             return mapOf();
         }
-        String query = String.format("SELECT count FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' group by transaction tz('Asia/Shanghai')",
+        ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
+        String query = String.format("SELECT count FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' group by transaction ",
                 startTime, endTime, taskId);
         QueryResult.Result result = influxDB.query(new Query(query)).getResults().get(0);
         Map<String, Object> map = new HashMap<>();
@@ -158,7 +171,9 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
                     OffsetDateTime lastPoint = point.minusSeconds(5);
                     double count = 0;
                     for (List<Object> value : values) {
-                        OffsetDateTime valuePoint = OffsetDateTime.parse(value.get(0).toString());
+                        // InfluxDB 返回 UTC 时间，转换为 Asia/Shanghai 时区
+                        OffsetDateTime utcTime = OffsetDateTime.parse(value.get(0).toString().replace(" ", "T"));
+                        OffsetDateTime valuePoint = utcTime.atZoneSameInstant(shanghaiZone).toOffsetDateTime();
                         if (valuePoint.isAfter(lastPoint) && valuePoint.isBefore(point)) {
                             count += (double)value.get(1);
                         }
@@ -178,7 +193,8 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
         if (startTime.isEmpty() || endTime.isEmpty()){
             return mapOf();
         }
-        String query = String.format("SELECT count FROM jmeter WHERE statut='ko' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='all' group by transaction tz('Asia/Shanghai')",
+        ZoneId shanghaiZone = ZoneId.of("Asia/Shanghai");
+        String query = String.format("SELECT count FROM jmeter WHERE statut='ko' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='all' group by transaction ",
                 startTime, endTime, taskId);
         QueryResult.Result result = influxDB.query(new Query(query)).getResults().get(0);
         Map<String, Object> map = new HashMap<>();
@@ -192,7 +208,9 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
                     OffsetDateTime lastPoint = point.minusSeconds(5);
                     double count = 0;
                     for (List<Object> value : values) {
-                        OffsetDateTime valuePoint = OffsetDateTime.parse(value.get(0).toString());
+                        // InfluxDB 返回 UTC 时间，转换为 Asia/Shanghai 时区
+                        OffsetDateTime utcTime = OffsetDateTime.parse(value.get(0).toString().replace(" ", "T"));
+                        OffsetDateTime valuePoint = utcTime.atZoneSameInstant(shanghaiZone).toOffsetDateTime();
                         if (valuePoint.isAfter(lastPoint) && valuePoint.isBefore(point)) {
                             count += (double)value.get(1);
                         }
@@ -215,7 +233,9 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
                     OffsetDateTime lastPoint = point.minusSeconds(5);
                     double count = 0;
                     for (List<Object> value : values) {
-                        OffsetDateTime valuePoint = OffsetDateTime.parse(value.get(0).toString());
+                        // InfluxDB 返回 UTC 时间，转换为 Asia/Shanghai 时区
+                        OffsetDateTime utcTime = OffsetDateTime.parse(value.get(0).toString().replace(" ", "T"));
+                        OffsetDateTime valuePoint = utcTime.atZoneSameInstant(shanghaiZone).toOffsetDateTime();
                         if (valuePoint.isAfter(lastPoint) && valuePoint.isBefore(point)) {
                             count += (double)value.get(1);
                         }
@@ -234,7 +254,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
             return mapOf();
         }
         Map<String, Object> map = new HashMap<>();
-        String queryCount = String.format("SELECT sum(count) FROM jmeter WHERE statut='' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction tz('Asia/Shanghai')",
+        String queryCount = String.format("SELECT sum(count) FROM jmeter WHERE statut='' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction ",
                 startTime, endTime, taskId);
         QueryResult.Result resultCount = influxDB.query(new Query(queryCount)).getResults().get(0);
         if (resultCount.getSeries()!=null){
@@ -247,7 +267,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
             }
             map.put("count", count);
         }
-        String query = String.format("SELECT count,responseCode,responseMessage FROM jmeter WHERE statut='' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction tz('Asia/Shanghai')",
+        String query = String.format("SELECT count,responseCode,responseMessage FROM jmeter WHERE statut='' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction ",
                 startTime, endTime, taskId);
         QueryResult.Result result = influxDB.query(new Query(query)).getResults().get(0);
         if (result.getSeries()!=null){
@@ -302,7 +322,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
             params.add(text);
         }
 
-        queryEvents += " tz('Asia/Shanghai')";
+        queryEvents += " ";
         queryEvents = String.format(queryEvents, params.toArray());
         log.info(queryEvents);
         List<QueryResult.Result> results = influxDB.query(new Query(queryEvents)).getResults();
@@ -384,7 +404,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
             long time = duration.getSeconds();
 
             String query1 = String.format("SELECT sum(count) as sample,count(count),mean(avg) as avg,MEDIAN(avg),sum(countError) as error ,max(max),min(min),sum(rb)/"
-                            +time+ " as rb,sum(sb)/"+time+" as sb ,sum(hit)/"+time+" as tps FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction ORDER BY time DESC tz('Asia/Shanghai')",
+                            +time+ " as rb,sum(sb)/"+time+" as sb ,sum(hit)/"+time+" as tps FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction ORDER BY time DESC ",
                     startTime, endTime, application);
             List<QueryResult.Result> results1 = influxDB.query(new Query(query1)).getResults();
             for (QueryResult.Result result : results1) {
@@ -414,7 +434,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
                     }
                 }
             }
-            String query2 = String.format("SELECT sum(count) as error FROM jmeter WHERE statut='ko' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction tz('Asia/Shanghai')",
+            String query2 = String.format("SELECT sum(count) as error FROM jmeter WHERE statut='ko' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' group by transaction ",
                     startTime, endTime, application);
             List<QueryResult.Result> results2 = influxDB.query(new Query(query2)).getResults();
             for (QueryResult.Result result : results2) {
@@ -432,7 +452,7 @@ public class TaskInfluxdbServiceImpl implements TaskInfluxdbService {
                     }
                 }
             }
-            String query3 = String.format("SELECT * FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' tz('Asia/Shanghai')",
+            String query3 = String.format("SELECT * FROM jmeter WHERE statut='all' and time >= '%s' AND time <= '%s' and application = '%s' and transaction!='internal' ",
                     startTime, endTime, application);
             List<Map<String,Object>> pctList = new ArrayList<>();
             List<QueryResult.Result> results3 = influxDB.query(new Query(query3)).getResults();

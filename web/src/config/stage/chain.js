@@ -64,6 +64,28 @@ export default {
       icon: 'iconfont icon-tushuguanli',
       order: 5,
       permission: ['链路数据查看']
+    },
+    {
+      title: '性能指标路径',
+      type: 'view',
+      name: 'chain-metric-path',
+      route: '/chain/metric-path',
+      filePath: 'view/chain/chain-metric-path.vue',
+      inNav: true,
+      icon: 'iconfont icon-tushuguanli',
+      order: 6,
+      permission: ['链路配置查看']
+    },
+    {
+      title: '链路架构图',
+      type: 'view',
+      name: 'chain-topology',
+      route: '/chain/topology',
+      filePath: 'view/chain/chain-topology.vue',
+      inNav: true,
+      icon: 'iconfont icon-tushuguanli',
+      order: 7,
+      permission: ['链路数据查看']
     }
   ]
 }

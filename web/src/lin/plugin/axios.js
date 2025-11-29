@@ -54,33 +54,41 @@ _axios.interceptors.request.use(
       if (!reqConfig.params) {
         reqConfig.params = reqConfig.data || {}
       }
-    } else if (reqConfig.method === 'post') {
+    } else if (reqConfig.method === 'post' || reqConfig.method === 'put') {
       if (!reqConfig.data) {
         reqConfig.data = reqConfig.params || {}
       }
 
       // 检测是否包含文件类型, 若包含则进行 formData 封装
       let hasFile = false
-      Object.keys(reqConfig.data).forEach(key => {
-        if (typeof reqConfig.data[key] === 'object') {
-          const item = reqConfig.data[key]
-          if (item instanceof FileList || item instanceof File || item instanceof Blob) {
-            hasFile = true
-          }
-        }
-      })
-
-      // 检测到存在文件使用 FormData 提交数据
-      if (hasFile) {
-        const formData = new FormData()
+      if (typeof reqConfig.data === 'object' && reqConfig.data !== null) {
         Object.keys(reqConfig.data).forEach(key => {
-          formData.append(key, reqConfig.data[key])
+          if (typeof reqConfig.data[key] === 'object' && reqConfig.data[key] !== null) {
+            const item = reqConfig.data[key]
+            if (item instanceof FileList || item instanceof File || item instanceof Blob) {
+              hasFile = true
+            }
+          }
         })
-        reqConfig.data = formData
+
+        // 检测到存在文件使用 FormData 提交数据
+        if (hasFile) {
+          const formData = new FormData()
+          Object.keys(reqConfig.data).forEach(key => {
+            formData.append(key, reqConfig.data[key])
+          })
+          reqConfig.data = formData
+        }
       }
     }
 
-    // step2: permission 处理
+    // step2: permission 处理 - 必须在所有数据处理之后，确保 headers 已初始化
+    // 确保 headers 对象存在
+    if (!reqConfig.headers) {
+      reqConfig.headers = {}
+    }
+    
+    // 添加认证头（必须在所有数据处理之后，避免提前返回导致认证头丢失）
     if (reqConfig.url === 'cms/user/refresh') {
       const refreshToken = getToken('refresh_token')
       if (refreshToken) {
@@ -111,7 +119,14 @@ _axios.interceptors.response.use(
       let tipMessage = ''
       const { url } = res.config
 
-      // refresh_token 异常，直接登出
+      // 弹出信息提示的第一种情况：直接提示后端返回的异常信息（框架默认为此配置）；
+      // 特殊情况：如果本次请求添加了 handleError: true，用户自行通过 try catch 处理，框架不做额外处理
+      // 注意：handleError 为 true 时，跳过自动登出和 token 刷新逻辑，让调用方自行处理
+      if (res.config.handleError) {
+        return reject(res)
+      }
+
+      // refresh_token 异常，直接登出（仅在非 handleError 模式下）
       if (refreshTokenException(code)) {
         setTimeout(() => {
           store.dispatch('loginOut')
@@ -131,12 +146,6 @@ _axios.interceptors.response.use(
           const result = await _axios(res.config)
           return resolve(result)
         }
-      }
-
-      // 弹出信息提示的第一种情况：直接提示后端返回的异常信息（框架默认为此配置）；
-      // 特殊情况：如果本次请求添加了 handleError: true，用户自行通过 try catch 处理，框架不做额外处理
-      if (res.config.handleError) {
-        return reject(res)
       }
 
       // 弹出信息提示的第二种情况：采用前端自己定义的一套异常提示信息（需自行在配置项开启）；

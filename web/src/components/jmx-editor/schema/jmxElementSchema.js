@@ -4,7 +4,7 @@ export const schemaElements = {
     category: 'sampler',
     testClass: 'com.alibaba.jmeter.plugin.dubbo.sample.DubboSampler',
     guiClass: 'com.alibaba.jmeter.plugin.dubbo.gui.DubboSamplerGui',
-    allowedParents: ['ThreadGroup'],
+    allowedParents: ['ThreadGroup', 'kg.apc.jmeter.threads.SteppingThreadGroup'],
     defaults: {
       'dubbo.application': '',
       'dubbo.registryProtocol': 'zookeeper',
@@ -102,8 +102,22 @@ export const schemaElements = {
 
 /**
  * Returns schema metadata for provided element type.
+ * Also matches by testClass for plugin types.
  */
-export const getSchemaForType = (type) => schemaElements[type] || null
+export const getSchemaForType = (type) => {
+  // Direct match
+  if (schemaElements[type]) {
+    return schemaElements[type]
+  }
+  
+  // Match by testClass for plugin types
+  // e.g., 'io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample' -> 'DubboSampler'
+  if (type && type.includes('dubbo') && type.includes('DubboSample')) {
+    return schemaElements['DubboSampler']
+  }
+  
+  return null
+}
 
 /**
  * Returns all schema definitions as an array for iteration.

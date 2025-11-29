@@ -34,6 +34,7 @@
             :props="treeProps"
             :highlight-current="true"
             :expand-on-click-node="false"
+            :default-expand-all="true"
             @node-click="handleNodeClick"
             draggable
             :allow-drop="allowDrop"
@@ -140,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, defineProps, defineEmits } from 'vue'
+import { ref, reactive, computed, watch, nextTick, defineProps, defineEmits } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Delete, Document, FolderOpened, Link, Coffee } from '@element-plus/icons-vue'
 
@@ -190,6 +191,7 @@ const newElementName = ref('')
 
 const schemaTypeSet = new Set(Object.keys(schemaElements))
 
+// Extended supported node types including plugin types
 const supportedNodeTypes = new Set([
   'TestPlan',
   'ThreadGroup',
@@ -199,6 +201,13 @@ const supportedNodeTypes = new Set([
   'CSVDataSet',
   'HeaderManager',
   'ResultCollector',
+  // Plugin types
+  'kg.apc.jmeter.threads.SteppingThreadGroup',
+  'io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample',
+  'kg.apc.jmeter.vizualizers.CorrectedResultCollector',
+  'JSONPathAssertion',
+  'ConstantThroughputTimer',
+  'CounterConfig',
   ...schemaTypeSet
 ])
 
@@ -255,7 +264,12 @@ const canAddChild = computed(() => {
   if (!currentNode.value) {
     return false
   }
-  if (!supportedNodeTypes.has(currentNode.value.type)) {
+  // Allow adding children to TestPlan and ThreadGroup types, even if not fully supported
+  const type = currentNode.value.type
+  if (type === 'TestPlan' || type === 'ThreadGroup' || type === 'kg.apc.jmeter.threads.SteppingThreadGroup') {
+    return availableElementTypes.value.length > 0
+  }
+  if (!supportedNodeTypes.has(type)) {
     return false
   }
   return availableElementTypes.value.length > 0
@@ -268,7 +282,9 @@ const canDeleteCurrentNode = computed(() => {
   if (currentNode.value.type === 'TestPlan') {
     return false
   }
-  return supportedNodeTypes.has(currentNode.value.type)
+  // Allow deletion of all nodes except TestPlan
+  // Even if not fully supported, they can be deleted
+  return true
 })
 
 const isUnsupportedCurrentNode = computed(() => {
@@ -282,8 +298,19 @@ const isUnsupportedCurrentNode = computed(() => {
 watch(() => props.modelValue, (newVal) => {
   if (newVal) {
     treeData.value = [newVal]
+    // Auto-expand root node
+    nextTick(() => {
+      if (treeRef.value && treeData.value.length > 0) {
+        const rootNode = treeRef.value.store.nodesMap[treeData.value[0].id]
+        if (rootNode) {
+          treeRef.value.store.setCurrentNode(rootNode)
+        }
+      }
+    })
+  } else {
+    treeData.value = []
   }
-}, { immediate: true })
+}, { immediate: true, deep: true })
 
 // Handle node click
 const handleNodeClick = (data) => {
@@ -300,7 +327,22 @@ const getIconComponent = (type) => {
     'JavaSampler': Coffee,
     'CSVDataSet': Document,
     'HeaderManager': Document,
-    'ResultCollector': Document
+    'ResultCollector': Document,
+    // Plugin types
+    'kg.apc.jmeter.threads.SteppingThreadGroup': FolderOpened,
+    'io.github.ningyu.jmeter.plugin.dubbo.sample.DubboSample': Link,
+    'kg.apc.jmeter.vizualizers.CorrectedResultCollector': Document,
+    'JSONPathAssertion': Document,
+    'ConstantThroughputTimer': Document,
+    'CounterConfig': Document
+  }
+  // Check if type contains certain keywords for fallback
+  if (!iconMap[type]) {
+    if (type && type.includes('ThreadGroup')) return FolderOpened
+    if (type && type.includes('Sampler')) return Link
+    if (type && type.includes('Timer')) return Document
+    if (type && type.includes('Assertion')) return Document
+    if (type && type.includes('Collector')) return Document
   }
   return iconMap[type] || Document
 }
@@ -324,6 +366,11 @@ const getEditorComponent = (type) => {
     return editorMap[type]
   }
   if (schemaTypeSet.has(type)) {
+    return SchemaDrivenEditor
+  }
+  // Check if type matches a schema by testClass (for plugin types)
+  const schema = getSchemaForType(type)
+  if (schema) {
     return SchemaDrivenEditor
   }
   return null

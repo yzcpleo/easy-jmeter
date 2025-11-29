@@ -540,9 +540,10 @@ public class JmxParserServiceImpl implements JmxParserService {
         switch (node.getType()) {
             case "TestPlan":
                 TestPlan testPlan = new TestPlan();
-                testPlan.setFunctionalMode((Boolean) props.getOrDefault("functionalMode", false));
-                testPlan.setSerialized((Boolean) props.getOrDefault("serializeThreadGroups", false));
-                testPlan.setTearDownOnShutdown((Boolean) props.getOrDefault("tearDownOnShutdown", true));
+                // Use getBooleanValue to safely handle String/Boolean conversion
+                testPlan.setFunctionalMode(getBooleanValue(props, "functionalMode", false));
+                testPlan.setSerialized(getBooleanValue(props, "serializeThreadGroups", false));
+                testPlan.setTearDownOnShutdown(getBooleanValue(props, "tearDownOnShutdown", true));
                 element = testPlan;
                 break;
                 
@@ -681,10 +682,11 @@ public class JmxParserServiceImpl implements JmxParserService {
                 csvDataSet.setFilename((String) props.get("filename"));
                 csvDataSet.setFileEncoding((String) props.getOrDefault("fileEncoding", "UTF-8"));
                 csvDataSet.setVariableNames((String) props.get("variableNames"));
-                csvDataSet.setIgnoreFirstLine((Boolean) props.getOrDefault("ignoreFirstLine", false));
+                // Use getBooleanValue to safely handle String/Boolean conversion
+                csvDataSet.setIgnoreFirstLine(getBooleanValue(props, "ignoreFirstLine", false));
                 csvDataSet.setDelimiter((String) props.getOrDefault("delimiter", ","));
-                csvDataSet.setRecycle((Boolean) props.getOrDefault("recycle", true));
-                csvDataSet.setStopThread((Boolean) props.getOrDefault("stopThread", false));
+                csvDataSet.setRecycle(getBooleanValue(props, "recycle", true));
+                csvDataSet.setStopThread(getBooleanValue(props, "stopThread", false));
                 csvDataSet.setShareMode((String) props.getOrDefault("shareMode", "shareMode.all"));
                 
                 element = csvDataSet;
