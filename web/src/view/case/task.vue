@@ -108,7 +108,7 @@
       const setMachine = (arr) => {
         availableMachine.value = 0
         for (var i = 0; i < arr.length; i++) {
-          if(arr[i].is_online==false || arr[i].jmeter_status.value!==0){
+          if(arr[i].is_online==false || arr[i].jmeter_status!==0){
             arr[i].disabled=true
           } else {
             availableMachine.value += 1

@@ -20,7 +20,13 @@
               <el-tag v-else type="info">在线</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="jmeter_status.desc" label="jmeter状态" width="115"></el-table-column>
+        <el-table-column label="jmeter状态" width="115">
+          <template #default="scope">
+            <el-tag :type="getJmeterStatusType(scope.row.jmeter_status)">
+              {{ getJmeterStatusDesc(scope.row.jmeter_status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" fixed="right" width="200">
           <template #default="scope">
             <el-button plain size="small" type="primary" @click="handleEdit(scope.row.id)">编辑</el-button>
@@ -121,6 +127,30 @@
         watch(name, () => {
           _debounce()
         })
+
+        const getJmeterStatusDesc = (status) => {
+          const statusMap = {
+            0: '空闲',
+            1: '配置',
+            2: '运行',
+            3: '收集',
+            4: '清理',
+            5: '中断'
+          }
+          return statusMap[status] || '未知'
+        }
+
+        const getJmeterStatusType = (status) => {
+          const typeMap = {
+            0: 'success',
+            1: 'warning',
+            2: 'primary',
+            3: 'info',
+            4: '',
+            5: 'danger'
+          }
+          return typeMap[status] || 'info'
+        }
   
         return {
           machines,
@@ -135,6 +165,8 @@
           handleEdit,
           handleCreate,
           getMachines,
+          getJmeterStatusDesc,
+          getJmeterStatusType,
         }
   
       },

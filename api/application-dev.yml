@@ -52,9 +52,15 @@ request-log:
 
 logging:
   level:
-    web: debug
-    io.github.guojiaxing1995.easyJmeter.mapper: debug
-    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+    root: info
+    web: info
+    io.github.guojiaxing1995.easyJmeter: info
+    io.github.guojiaxing1995.easyJmeter.mapper: info
+    org.springframework.data.mongodb.core.MongoTemplate: info
+    org.apache.ibatis: info
+    org.mybatis: info
+    org.springframework.web: info
+    org.springframework.jdbc: info
 
 minio:
   endpoint: http://localhost:9001
@@ -84,17 +90,20 @@ mybatis-plus:
   configuration:
     # 开启下划线转驼峰
     map-underscore-to-camel-case: true
-
+    #type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
+     # 指定默认枚举类型的类型转换器
+    default-enum-type-handler: com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler
   global-config:
     # 开启/关闭 banner 打印
     banner: false
     db-config:
-      
+            # 逻辑删除（软删除）
+      logic-delete-value: NOW()
       logic-not-delete-value: 'NULL'  # 未删除标记
   # mapper路径位置
   mapper-locations: classpath:mapper/*.xml
 
-  type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
+  #type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
   
 
 
