@@ -74,6 +74,6 @@ public class ProjectServiceImpl implements ProjectService {
     public Integer getCaseCount(Integer id) {
         QueryWrapper<CaseDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("project", id);
-        return caseMapper.selectCount(queryWrapper);
+        return caseMapper.selectCount(queryWrapper).intValue();
     }
 }

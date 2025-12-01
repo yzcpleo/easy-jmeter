@@ -33,8 +33,6 @@ mybatis-plus:
     banner: false
   # mapper路径位置
   mapper-locations: classpath:mapper/*.xml
-  type-enums-package: io.github.guojiaxing1995.easyJmeter.common.enumeration
-
 
 lin:
   cms:

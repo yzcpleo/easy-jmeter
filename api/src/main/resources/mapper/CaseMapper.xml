@@ -20,7 +20,7 @@
     <resultMap id="SearchResultMap" type="io.github.guojiaxing1995.easyJmeter.vo.CaseInfoVO">
         <id column="id" jdbcType="INTEGER" property="id"/>
         <result column="name" jdbcType="VARCHAR" property="name"/>
-        <result column="status" property="status" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
+        <result column="status" jdbcType="TINYINT" property="status" typeHandler="com.baomidou.mybatisplus.core.handlers.MybatisEnumTypeHandler"/>
         <result column="project" jdbcType="INTEGER" property="project"/>
         <result column="jmx" jdbcType="VARCHAR" property="jmx"/>
         <result column="csv" jdbcType="VARCHAR" property="csv"/>

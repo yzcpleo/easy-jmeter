@@ -39,14 +39,7 @@ public class CommonConfiguration {
         return interceptor;
     }
 
-    /**
-     * 参考链接：https://mp.baomidou.com/guide/interceptor.html
-     */
-    @Bean
-    @SuppressWarnings("deprecation")
-    public ConfigurationCustomizer configurationCustomizer() {
-        return configuration -> configuration.setUseDeprecatedExecutor(false);
-    }
+
 
     @Bean
     public ISqlInjector sqlInjector() {

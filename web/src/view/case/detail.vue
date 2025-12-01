@@ -18,7 +18,7 @@
           :color=getProgressColor(jcase)
           >
           <template #default="{ percentage }">
-            <span>{{jcase.status.desc}}</span>
+            <span>{{jcase.status?.desc || '-'}}</span>
           </template>
           </el-progress>
           <div class="btn">
@@ -37,9 +37,10 @@
             <el-col :span="6" class="text-content">压测时长：{{ timeDeal(task.duration) }}</el-col>
             <el-col :span="6" class="text-content">过渡时间：{{ timeDeal(task.ramp_time) }}</el-col>
             <el-col :span="6" class="text-content">测试结果：
-              <el-text type="primary" size="large" v-if="task.result.value === 0">{{ task.result.desc }}</el-text>
-              <el-text type="success" size="large" v-else-if="task.result.value === 1">{{ task.result.desc }}</el-text>
-              <el-text type="danger" size="large" v-else>{{ task.result.desc }}</el-text>
+              <el-text type="primary" size="large" v-if="task.result && task.result.value === 0">{{ task.result.desc }}</el-text>
+              <el-text type="success" size="large" v-else-if="task.result && task.result.value === 1">{{ task.result.desc }}</el-text>
+              <el-text type="danger" size="large" v-else-if="task.result">{{ task.result.desc }}</el-text>
+              <el-text type="info" size="large" v-else>-</el-text>
             </el-col>
           </el-row>
           <el-row :gutter="20" class="row-content">
@@ -413,7 +414,7 @@
 
         const startTime = computed(() => {
           for(var index in taskLog.value) {
-              if (taskLog.value[index].status.value === 2) {
+              if (taskLog.value[index].status && taskLog.value[index].status.value === 2) {
                   return taskLog.value[index].create_time
               }
           }
@@ -421,13 +422,16 @@
 
         const endTime = computed(() => {
           for(var index in taskLog.value) {
-              if (taskLog.value[index].status.value === 3) {
+              if (taskLog.value[index].status && taskLog.value[index].status.value === 3) {
                   return taskLog.value[index].create_time
               }
           }
         })
 
         const getProgressColor = c => {
+            if (!c || !c.status) {
+              return '#5e616d'
+            }
             switch (c.status.value) {
             case 0:
               return '#5698c3'
@@ -441,6 +445,8 @@
               return '#5e616d'
             case 5:
               return '#ce5777'
+            default:
+              return '#5e616d'
           }
         }
 
@@ -492,8 +498,10 @@
           ElMessage.success("启动下载成功")
         }
 
-        watch( () => jcase.value.task_result.value,() => {
-          getTaskReport()
+        watch( () => jcase.value?.task_result?.value,() => {
+          if (jcase.value?.task_result?.value !== undefined && jcase.value?.task_result?.value !== null) {
+            getTaskReport()
+          }
         })
 
         const initRealChart = () => {
@@ -731,7 +739,7 @@
             if (tpsRealEChart != null) {
               tpsRealEChart.setOption(option, true)
               // 第一次渲染成功后判断是不是可以停止定时任务
-              if (jcase.value.status.value != 2) {
+              if (jcase.value.status && jcase.value.status.value != 2) {
                 if (timer.value) {
                   window.clearInterval(timer.value)
                   timer.value = null

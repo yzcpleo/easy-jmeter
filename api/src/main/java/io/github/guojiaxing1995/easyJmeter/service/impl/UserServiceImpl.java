@@ -194,7 +194,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     public boolean checkUserExistByEmail(String email) {
         QueryWrapper<UserDO> wrapper = new QueryWrapper<>();
         wrapper.lambda().eq(UserDO::getEmail, email);
-        int rows = this.baseMapper.selectCount(wrapper);
+        Long rows = this.baseMapper.selectCount(wrapper);
         return rows > 0;
     }
 

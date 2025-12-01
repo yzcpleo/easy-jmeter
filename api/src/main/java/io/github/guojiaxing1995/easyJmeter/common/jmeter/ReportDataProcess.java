@@ -258,7 +258,15 @@ public class ReportDataProcess {
                     .map(item -> (JSONArray) item)
                     .map(array -> {
                         Object a = ((Number)array.get(0)).longValue();
-                        BigDecimal b = ((BigDecimal) array.get(1)).setScale(1, RoundingMode.HALF_UP);
+                        Object value = array.get(1);
+                        BigDecimal b;
+                        if (value instanceof BigDecimal) {
+                            b = ((BigDecimal) value).setScale(1, RoundingMode.HALF_UP);
+                        } else if (value instanceof Number) {
+                            b = BigDecimal.valueOf(((Number) value).doubleValue()).setScale(1, RoundingMode.HALF_UP);
+                        } else {
+                            b = new BigDecimal(value.toString()).setScale(1, RoundingMode.HALF_UP);
+                        }
                         return listOf(a, b);
                     })
                     .collect(Collectors.toList());

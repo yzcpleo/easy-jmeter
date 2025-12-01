@@ -34,8 +34,9 @@
       <el-table-column prop="create_time" label="测试时间" width="170"></el-table-column>
       <el-table-column prop="result.desc" label="测试结果" width="150">
         <template #default="scope">
-          <el-text type="success" v-if="scope.row.result.value === 1">{{ scope.row.result.desc }}</el-text>
-          <el-text type="danger" v-else>{{ scope.row.result.desc }}</el-text>
+          <el-text type="success" v-if="scope.row.result && scope.row.result.value === 1">{{ scope.row.result.desc }}</el-text>
+          <el-text type="danger" v-else-if="scope.row.result">{{ scope.row.result.desc }}</el-text>
+          <span v-else>-</span>
         </template>
       </el-table-column>
       <el-table-column label="操作" fixed="right" width="100">
